@@ -1,16 +1,19 @@
-# syntax=docker/dockerfile:1
+FROM node:16
 
-EXPOSE 8080
+# Create app directory
+WORKDIR /usr/src/app
 
-FROM node:12.18.1
-ENV NODE_ENV=production
+# Install app dependencies
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
+# where available (npm@5+)
+COPY package*.json ./
 
-WORKDIR /app
+RUN npm install
+# If you are building your code for production
+# RUN npm ci --only=production
 
-COPY ["package.json", "package-lock.json*", "./"]
-
-RUN npm install --production
-
+# Bundle app source
 COPY . .
 
+EXPOSE 8080
 CMD [ "node", "server.js" ]
