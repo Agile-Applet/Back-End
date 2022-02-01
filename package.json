@@ -1,0 +1,22 @@
+{
+  "name": "kasino-alusta",
+  "version": "1.0.0",
+  "description": "Back-End side of the Casino Platform.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Agile-Applet/Back-End.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Agile-Applet/Back-End/issues"
+  },
+  "homepage": "https://github.com/Agile-Applet/Back-End#readme",
+  "dependencies": {
+    "express": "^4.17.2"
+  }
+}
