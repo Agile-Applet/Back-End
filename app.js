@@ -1,5 +1,4 @@
 const express = require('express')
-
 const ConnectToMongo = require('./user/config/db')
 const user = require("./user/routes/user")
 const bodyParser = require('body-parser')

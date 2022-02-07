@@ -3,7 +3,7 @@ const dotenv = require('dotenv')
 dotenv.config()
 const JWT_SECRET=process.env.jwt
 
-const verifyUser = (req, res, next) => {
+module.exports = (req, res, next) =>{
     const token = req.header("token")
     if(!token) return res.status(401).json({message: "Authentication failed"})
 
@@ -16,5 +16,3 @@ const verifyUser = (req, res, next) => {
         res.status(500).send({ message: "Bad Token"})
     }
 }
-
-module.exports = verifyUser

@@ -5,22 +5,21 @@ dotenv.config()
 const SALT = process.env.salt
 const jwt = require('jsonwebtoken')
 const JWT_SECRET=process.env.jwt
-const auth = require('../config/auth')()
+const auth = require('../config/auth')
 
 const {check, validationResult} = require('express-validator')
 const router = express.Router()
 
-const User = require('../model/User')
-
+const User = require('../model/user')
 
 
 // Register new user
 router.post(
     "/signup",
     [
-        check("username", "Please Enter a Valid Username").not.isEmpty,
+        check("username", "Please Enter a Valid Username").not().isEmpty(),
         check("email", "please enter a valid email").isEmail(),
-        check("password", "please enter a valid password").not.isEmpty
+        check("password", "please enter a valid password").not().isEmpty()
     ],
     async (req, res) => {
         const errors = validationResult(req)
@@ -29,19 +28,21 @@ router.post(
                 errors: errors.array()
             });
         }
-    const{ username, email, password } = req.body
+    const { username, email, password } = req.body
     try {
-        let user = await User.findOne({email})
+        let user = await User.findOne({username})
         if (user) {
             return res.status(400).json({message: "Username is already taken"})
         }
 
         user = new User({ username, email, password})
 
-        const salt = await bcrypt.genSalt(SALT)
-        user.password = await bcrypt.hash(password, salt)
+        
+        console.log(SALT)
+        const salt = bcrypt.genSaltSync(parseInt(SALT))
+        user.password = bcrypt.hashSync(password, salt)
 
-        await user.save()
+        user.save()
 
         const payload = { user: {id: user.id}}
 
@@ -52,13 +53,13 @@ router.post(
             },
             (error, token) => {
                 if(error) throw error
-                res.status(200).json({ token})
+                res.status(200).json({token})
             }
         )
 
     }catch (error){
         console.log(error.message)
-        res.send({message: "error"})
+        res.status(500).send("Sign-up failed")
     }
     }
 )
@@ -67,7 +68,7 @@ router.post(
 router.post(
     "/login",
     [
-        check("username", "please enter a valid username").not.isEmpty,
+        check("username", "please enter a valid username").not().isEmpty(),
         check("password", "please enter a valid password").isLength({min: 6})
     ],
     async (req, res) => {
@@ -107,10 +108,10 @@ router.post(
 router.get("/logged", auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id)
-        res.status(200).send(user)
+        res.json(user)
     } catch(error) {
         res.send(
-            {message: "Error in fetch"}
+            {mes: "Error in fetch"}
             )
         }     
     }
