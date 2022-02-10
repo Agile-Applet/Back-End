@@ -8,6 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(require('./record'));
+app.use(require('./user/session'))
 
 // Welcome page
 app.get('/', (req, res) => {
