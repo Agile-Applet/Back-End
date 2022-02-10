@@ -8,6 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(require('./record'));
+app.use(require('./user/session'))
 
 // Global error handling.
 app.use(function (err, _req, res) {
