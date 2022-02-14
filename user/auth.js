@@ -33,7 +33,17 @@ router.post("/login", async (req, res) => {
             } else {
               req.session.username = username;
               req.session.isLogged = true;
-              return res.status(200).json("Logged in");
+              return res
+                .status(200)
+                .json({
+                  username: username,
+                  saldo: user.saldo,
+                  isAdmin: false,
+                  isLogged: true,
+                  message: "Logged in successfully",
+                  cookie: req.session.cookie,
+                  sessionID: req.sessionID,
+                });
             }
           });
       }
@@ -51,13 +61,13 @@ router.post("/isLogged", (req, res) => {
 });
 
 // Logout
-router.delete("/logout", (req, res) => {
+router.post("/logout", (req, res) => {
   if (req.session) {
     req.session.destroy((err) => {
       if (err) {
         res.status(400).json("Unable to log out");
       } else {
-        res.send("Logout successful");
+        res.status(200).json("Logout successful");
       }
     });
   } else {
@@ -77,37 +87,28 @@ router.post("/register", async (req, res) => {
       if (data) {
         res.status(409).send("Username already taken");
       } else {
+        const dbConnect = dbo.getDb();
+
+        const salt = bcryptjs.genSaltSync(parseInt(SALT));
+        const hashedPassword = bcryptjs.hashSync(password, salt);
+
+        const playersDocument = {
+          listing_id: req.body.id,
+          last_modified: new Date(),
+          username: username,
+          saldo: 100.0,
+          usergroup: 0,
+          email: email,
+          password: hashedPassword,
+        };
         dbConnect
           .collection("players")
-          .findOne({ email: email })
-          .then((exist) => {
-            if (exist) {
-              res.status(409).send("Email already registered");
+          .insertOne(playersDocument, (err, result) => {
+            if (err) {
+              res.status(400).json("Error inserting player!");
             } else {
-              const dbConnect = dbo.getDb();
-
-              const salt = bcryptjs.genSaltSync(parseInt(SALT));
-              const hashedPassword = bcryptjs.hashSync(password, salt);
-
-              const playersDocument = {
-                listing_id: req.body.id,
-                last_modified: new Date(),
-                username: username,
-                email: email,
-                password: hashedPassword,
-              };
-              dbConnect
-                .collection("players")
-                .insertOne(playersDocument, (err, result) => {
-                  if (err) {
-                    res.status(400).json("Error inserting player!");
-                  } else {
-                    console.log(
-                      `Added a new player with id ${result.insertedId}`
-                    );
-                    res.status(201).json("Register done");
-                  }
-                });
+              console.log(`Added a new player with id ${result.insertedId}`);
+              res.status(201).json("Register done");
             }
           });
       }
