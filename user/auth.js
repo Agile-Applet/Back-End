@@ -9,11 +9,6 @@ const router = express.Router();
 // Connect to database
 const dbo = require("../conn");
 
-const testCall = (callback) => {
-  console.log("test");
-  if (typeof callback == "function") callback();
-};
-
 // Login
 // TODO: tarkistus onko käyttäjä bannitty
 router.post("/login", async (req, res) => {
@@ -46,6 +41,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Check if user has logged in
 router.post("/isLogged", (req, res) => {
   if (req.session.isLogged) {
     res.status(200).json(true);
