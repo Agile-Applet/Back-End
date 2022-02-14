@@ -13,11 +13,11 @@ sessionRouter.use(session({
         collection: 'sessions'
     }),
     secret: sessionSecret, // https://www.npmjs.com/package/express-session#secret
-    resave: true, // https://www.npmjs.com/package/express-session#resave
-    saveUninitialized: true, //https://www.npmjs.com/package/express-session#saveuninitialized
+    resave: false, // https://www.npmjs.com/package/express-session#resave
+    saveUninitialized: false, //https://www.npmjs.com/package/express-session#saveuninitialized
     rolling: true, // Max age resets with events
     cookie : {
-        maxAge: 1000 * 60 * 60 // 1d
+        maxAge: 1000 * 60 * 60 // 1h
     },
 }))
 
