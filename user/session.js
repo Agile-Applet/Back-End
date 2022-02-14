@@ -15,9 +15,9 @@ sessionRouter.use(session({
     secret: sessionSecret, // https://www.npmjs.com/package/express-session#secret
     resave: false, // https://www.npmjs.com/package/express-session#resave
     saveUninitialized: false, //https://www.npmjs.com/package/express-session#saveuninitialized
-    rolling: true, // Max age resets with events
+    rolling: true, // 
     cookie : {
-        maxAge: 1000 * 60 * 60 // 1h
+        maxAge: 1000 * 60 * 60, // 1h
     },
 }))
 
