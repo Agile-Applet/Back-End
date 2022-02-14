@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dbo = require('./conn');
 
-const PORT = 3000;
+const PORT = 3001;
 const app = express();
 
 app.use(cors());
@@ -10,6 +10,7 @@ app.use(express.json());
 app.use(require('./record'));
 app.use(require('./user/session'))
 app.use(require('./user/auth'))
+app.use(require('./routes/money'));
 
 // Welcome page
 app.get('/', (req, res) => {
