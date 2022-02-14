@@ -65,7 +65,6 @@ router.delete("/logout", (req, res) => {
   }
 });
 
-// TODO: Add function to check if player or email exists
 // TODO: Add validations
 router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
