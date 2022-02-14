@@ -9,11 +9,17 @@ app.use(cors());
 app.use(express.json());
 app.use(require('./record'));
 
+// Welcome page.
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
 // Global error handling.
 app.use(function (err, _req, res) {
   console.error(err.stack);
   //res.status(500).send('Something broke!');
 });
+
 
 // Perform a database connection when the server starts.
 dbo.connectToServer(function (err) {
@@ -21,9 +27,9 @@ dbo.connectToServer(function (err) {
     console.error("err");
     process.exit();
   }
+});
 
-  // Start the Express server.
-  app.listen(PORT, () => {
-    console.log(`Server is running on port: ${PORT}`);
-  });
+// Start the Express server.
+app.listen(PORT, () => {
+  console.log(`Server is running on port: ${PORT}`);
 });

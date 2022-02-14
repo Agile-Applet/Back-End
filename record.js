@@ -1,12 +1,14 @@
-const express = require('express');
+require('dotenv').config()
 
+const express = require('express');
 const recordRoutes = express.Router();
 
 // Connect to the database.
 const dbo = require('./conn');
 
 // All records.
-recordRoutes.route('/players').get(async function (_req, res) {
+recordRoutes.route('/players').get(async function (req, res) {
+
   const dbConnect = dbo.getDb();
 
   dbConnect
@@ -23,7 +25,7 @@ recordRoutes.route('/players').get(async function (_req, res) {
 });
 
 // Single record.
-recordRoutes.route('/players/:id').get((req, res) => {
+recordRoutes.route('/players/:id').get(authenticateToken, (req, res) => {
 
   const dbConnect = dbo.getDb();
   const query = { listing_id: req.params.id };
@@ -42,9 +44,18 @@ recordRoutes.route('/players/:id').get((req, res) => {
 });
 
 // Create a new record.
-recordRoutes.route('/players/add').post(function (req, res) {
+recordRoutes.route('/players/add').post(async function (req, res) {
 
   const dbConnect = dbo.getDb();
+
+  let hashedPassword = "";
+
+  try {
+    hashedPassword = await bcrypt.hash(req.body.password, 10);
+  } catch {
+    res.status(500).send('Error creating password!');
+  }
+
   const playersDocument = {
     listing_id: req.body.id,
     last_modified: new Date(),
@@ -52,7 +63,7 @@ recordRoutes.route('/players/add').post(function (req, res) {
     first_name: req.body.first_name,
     last_name: req.body.last_name,
     email: req.body.email,
-    password: req.body.password
+    password: hashedPassword
   };
 
   dbConnect
@@ -108,5 +119,69 @@ recordRoutes.route('/players/delete/:id').delete((req, res) => {
       }
     });
 });
+
+//Authserver stuff, move these.
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+let refreshTokens = [];
+
+//Authenticate user.
+recordRoutes.route('/login').post(async function (req, res) {
+
+  const dbConnect = dbo.getDb();
+
+  let user = {};
+
+  dbConnect
+    .collection('players')
+    .find({})
+    .toArray(async function (err, result) {
+      if (err) {
+        res.status(400).send('Error fetching players!');
+      } else {
+        user = await result.find(user => user.username === req.body.username);
+        try {
+          if (await bcrypt.compare(req.body.password, user.password)) {
+            /*const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET);
+            res.json({ accessToken: accessToken });*/
+
+            const username = req.body.username
+            const user = { name: username }
+
+            const accessToken = generateAccessToken(user)
+            const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET)
+            refreshTokens.push(refreshToken)
+            res.json({ accessToken: accessToken, refreshToken: refreshToken })
+
+          } else {
+            res.send('Wrong password!');
+          }
+        } catch {
+          res.status(500).send('Error matching credentials!');
+        }
+      }
+    });
+});
+
+// New token
+function generateAccessToken(user) {
+  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1min' })
+}
+
+// Validate token
+function authenticateToken(req, res, next) {
+
+  const authHeader = req.headers['authorization']
+  const token = authHeader && authHeader.split(' ')[1]
+  if (token == null) return res.sendStatus(401)
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    console.log(err)
+    if (err) return res.sendStatus(403)
+    req.user = user
+    next()
+  })
+}
 
 module.exports = recordRoutes;
