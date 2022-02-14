@@ -37,7 +37,11 @@ router.post("/login", async (req, res) => {
                 .status(200)
                 .json({
                   username: username,
+<<<<<<< HEAD
                   saldo: user.saldo, //saldo
+=======
+                  saldo: user.saldo,
+>>>>>>> 6cd737a291d519365101420669184c4968cb2036
                   isAdmin: false,
                   isLogged: true,
                   message: "Logged in successfully",
