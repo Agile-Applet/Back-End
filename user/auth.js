@@ -26,13 +26,20 @@ router.post('/login', async (req, res) => {
               if(!user){ 
                   return res.status(401).json('You shall not pass!'); // user doesn't exist
               }else{
-                const isMatch = bcryptjs.compare(password, user.password);
-                if(!isMatch) res.status(401).json('You shall not pass'); // Password mismatch
-            
-                req.session.username = username;
-                req.session.isLogged = true;
-                isAdmin = user.admin || false;
-                return res.status(200).json("Logged in");
+                const isMatch = bcryptjs.compare(password, user.password)
+                .then(match => {
+                    console.log(match)
+                    if(!match) {
+                        res.status(401).json('You shall not pass'); // Password mismatch
+                    }else{
+                        req.session.username = username;
+                        req.session.isLogged = true;
+                        isAdmin = user.admin || false;
+                        return res.status(200).json("Logged in");
+                    }
+                });
+                
+
               }
         })
     }
