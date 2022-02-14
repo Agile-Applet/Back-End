@@ -11,19 +11,64 @@ const router = express.Router();
 const dbo = require('../conn');
 
 
+// Login
+// TODO: tarkistus onko koneella joku kirjautunut jo
+// TODO: tarkistus onko käyttäjä bannitty
+router.post('/login', async (req, res) => {
+    const {username, password} = req.body;
 
-router.post('/test', (req, res) => {
-    req.session.test = true;
-    res.status(200).send('ye');
+    const dbConnect = dbo.getDb();
+    const query = { username: username };
+    
+    await dbConnect.collection('players').findOne(query, (err, result) => {
+        if(err) res.status(401).json('You shall not pass'); // error
+        let user = result;
+          if(!user){ 
+              return res.status(401).json('You shall not pass!'); // user doesn't exist
+          }else{
+            const isMatch = bcryptjs.compare(password, user.password);
+            if(!isMatch) res.status(401).json('You shall not pass') // Password mismatch
+        
+            req.session.username = username
+            return res.status(200).json("Logged in")
+          }
+
+    })
+})
+
+
+// Logout
+router.delete('/logout', (req, res) => {
+    if (req.session) {
+      req.session.destroy(err => {
+        if (err) {
+          res.status(400).send('Unable to log out')
+        } else {
+          res.send('Logout successful')
+        }
+      });
+    } else {
+      res.end()
+    }
+  })
+
+router.get('/tester', (req, res) => {
+    if(req.session) {
+        console.log(req.session)
+        res.status(200).send('yee');
+    }else{
+        res.send('yes')
+    }
 })
 
 
 
+// TODO: Add function to check if player or email exists
 router.post('/register', async (req, res ) => {
 
     const dbConnect = dbo.getDb();
     const {username, email, password } = req.body;
-
+  
     const salt = bcryptjs.genSaltSync(parseInt(SALT));
     const hashedPassword = bcryptjs.hashSync(password, salt);
 
@@ -33,130 +78,18 @@ router.post('/register', async (req, res ) => {
         username: username,
         email: email,
         password: hashedPassword
-      };
-
-      dbConnect
-      .collection('players')
-      .insertOne(playersDocument, function (err, result) {
+};
+    dbConnect
+    .collection('players')
+    .insertOne(playersDocument, (err, result) => {
         if (err) {
-          res.status(400).send('Error inserting player!');
+        res.status(400).json('Error inserting player!');
         } else {
-          console.log(`Added a new player with id ${result.insertedId}`);
-          res.status(204).send();
-        }
-      });
-})
-
-// TODO: tarkistus onko koneella joku kirjautunut jo
-router.post('/login', async (req, res) => {
-    const {username, password} = req.body;
-
-    const dbConnect = dbo.getDb();
-    const query = { username: username };
-    
-    await dbConnect.collection('players').findOne(query, (err, result) => {
-        if(err) res.status(401).send('You shall not pass');
-        let user = result;
-          if(!user){ // user doesn't exist
-              return res.status(401).send('You shall not pass!');
-          }else{
-            const isLegit = bcryptjs.compare(password, user.password);
-            if(!isLegit) res.status(401).send('You shall not pass') // Password mismatch
-        
-            req.session.isLogged = true;
-            return res.status(200).send("Logged in")
-          }
-
-    })
-})
-    /*
-   
-              const isLegit = await bcryptjs.compareSync(password, user.password);
-              
-              if (!isLegit) {
-                  res.status(401).send('You shall not pass!');
-              }else {
-                  req.session.isLogged = true;
-                  res.status(200).send("Logged in")
-              }
-          }
-    }
-        )
-    }catch(e) {
-        console.log(e);
-        res.status(500).send("Error")
-    }
-})
-
-*/
-
-    
-router.get('/test2', async (req, res) => {
-    const dbConnect = dbo.getDb();
-
-    dbConnect.collection('players').findOne({}, (err, res) => {
-        if(err) throw error;
-        console.log(res);
-    })
-
-})
-
-/*
-router.post(
-    '/register',
-    [
-        check('username', 'Please Enter a Valid Username').not().isEmpty(),
-        check('email', 'Please enter a valid email').isEmail(),
-        check('password', 'Please enter a valid password').not().isEmpty()
-    ],
-    async (req, res) => {
-        const errors = validationResult(req)
-        if(!errors.isEmpty) {
-            return res.status(400).json({
-                errors: errors.array()
-            });
-        }
-        const {username, email, password} = req.body
-        try {
-            console.log(username)
-            console.log(email)
-            console.log(password)
-            const dbConnect = dbo.getDb();
-            let user = await dbConnect.collection('players').findOne({username : username})
-            console.log(user);
-            if(user) {
-                return res.status(400).json({message: 'Username is already taken.'})
+        console.log(`Added a new player with id ${result.insertedId}`);
+        res.status(204).json('Register done');
             }
-            let em = await dbConnect.find(email);
-            if(em) {
-                return res.status(400).json({message: 'The email address is already being used.'})
-            }
-            const salt = bcryptjs.genSaltSync(parseInt(SALT));
-            const userPassword = bcryptjs.hashSync(password, salt);
-
-            const userDoc = {
-                user_id : req.body.id,
-                registered: new Date(),
-                username: username,
-                email: email,
-                password: req.body.password
-            };
-
-            dbConnect.collection('users')
-            .insertOne(playersDocument, function (err, result) {
-                if (err) {
-                    res.status(400).send('Error registering user');
-                }else {
-                    res.status(204).send();
-                }
-            })
-        }
-
-        catch(error){
-            console.log(error.message)
-            res.status(500).send('Something went wrong.')
-        }
-    })
-    */
+        });
+    }
+)
 
 module.exports = router;
