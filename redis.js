@@ -1,5 +1,4 @@
 const redis = require('redis');
-const DEFAULT_EXPIRATION = 3600;
 const redisClient = redis.createClient();
 
 // Redis connection.
