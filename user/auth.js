@@ -18,10 +18,10 @@ router.post("/login", async (req, res) => {
   const query = { username: username };
   const cachedValue = await redisClient.get(username);
 
-  if (cachedValue === null) {
-    if (req.session.username) {
-      res.status(401).json("Already logged in");
-    } else {
+  if (req.session.username) {
+    res.status(401).json("Already logged in");
+  } else {
+    if (cachedValue === null) {
       await dbConnect.collection("players").findOne(query, (err, result) => {
         if (err) res.status(401).json("Error fetching player data.");
         let user = result;
@@ -36,7 +36,15 @@ router.post("/login", async (req, res) => {
               } else {
                 req.session.username = username;
                 req.session.isLogged = true;
-                redisClient.setEx(username, DEFAULT_EXPIRATION, JSON.stringify(result))
+                redisClient.setEx(username, DEFAULT_EXPIRATION, JSON.stringify({
+                  username: username,
+                  saldo: user.saldo,
+                  isAdmin: false,
+                  isLogged: true,
+                  message: "Logged in successfully.",
+                  cookie: req.session.cookie,
+                  sessionID: req.sessionID
+                }));
                 return res
                   .status(200)
                   .json({
@@ -52,9 +60,9 @@ router.post("/login", async (req, res) => {
             });
         }
       });
+    } else {
+      return res.status(200).json(JSON.parse(cachedValue));
     }
-  } else {
-    return res.status(200).json(JSON.parse(cachedValue));
   }
 });
 
@@ -74,6 +82,7 @@ router.post("/logout", (req, res) => {
       if (err) {
         res.status(400).json("Unable to log out.");
       } else {
+        redisClient.del(req.body.username);
         res.status(200).json("Logout successful.");
       }
     });
