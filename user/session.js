@@ -7,7 +7,6 @@ const connectionString = process.env.MONGODB_STRING;
 const sessionRouter = express.Router();
 
 // User sessions.
-
 sessionRouter.use(session({
     store: MongoStore.create({
         mongoUrl: connectionString,

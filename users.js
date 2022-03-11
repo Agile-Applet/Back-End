@@ -1,7 +1,6 @@
 const users = []
 
 // User management functions.
-
 const addUser = (id, name, room) => {
     const existingUser = users.find(user => user.name.trim().toLowerCase() === name.trim().toLowerCase())
 
@@ -27,4 +26,4 @@ const deleteUser = (id) => {
 
 const getUsers = (room) => users.filter(user => user.room === room)
 
-module.exports = { addUser, getUser, deleteUser, getUsers }
+module.exports = { addUser, getUser, deleteUser, getUsers };
