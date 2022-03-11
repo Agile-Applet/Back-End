@@ -1,5 +1,7 @@
 const users = []
 
+// User management functions.
+
 const addUser = (id, name, room) => {
     const existingUser = users.find(user => user.name.trim().toLowerCase() === name.trim().toLowerCase())
 
