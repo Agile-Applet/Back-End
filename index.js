@@ -16,7 +16,7 @@ app.use(require('./routes/money'));
 
 // Welcome page.
 app.get('/', (req, res) => {
-  res.send("Server is up and running!")
+  res.send("Server is up and running perfectly!")
 })
 
 // Global error handling.
