@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const dbo = require('./conn');
 const PORT = process.env.PORT || 3000;
+const dateNow = new Date();
 
 app.use(cors());
 app.use(express.json());
@@ -16,7 +17,7 @@ app.use(require('./routes/money'));
 
 // Welcome page.
 app.get('/', (req, res) => {
-  res.send("Server is up and running perfectly!")
+  res.send("Server is up and running perfectly with the latest version! " + dateNow)
 })
 
 // Global error handling.
