@@ -4,10 +4,6 @@ files:
   - source: /
     destination: /home/bitnami/express-app
 hooks:
-  ApplicationStop:
-    - location: scripts/application_stop.sh
-      timeout: 300
-      runas: bitnami
   BeforeInstall:
     - location: scripts/before_install.sh
       timeout: 300
