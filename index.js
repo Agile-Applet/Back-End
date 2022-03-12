@@ -17,7 +17,7 @@ app.use(require('./routes/money'));
 
 // Welcome page.
 app.get('/', (req, res) => {
-  res.send("Server is up and running perfectly with the latest version! " + dateNow)
+  res.send("Server is up and running with the latest version! " + dateNow)
 })
 
 // Global error handling.
