@@ -1,6 +1,6 @@
 const app = require('express')()
-const http = require('http').createServer(app)
-const io = require('socket.io')(http)
+const https = require('https').createServer(app)
+const io = require('socket.io')(https)
 const { addUser, getUser, deleteUser, getUsers } = require('./users')
 const express = require('express');
 const cors = require('cors');
@@ -93,7 +93,7 @@ dbo.connectToServer(function (err) {
     })
 
     // Start the Express server.
-    http.listen(PORT, () => {
+    https.listen(PORT, () => {
       console.log(`Server is running on port: ${PORT}`);
     });
   });
