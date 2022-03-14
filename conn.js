@@ -7,7 +7,6 @@ const client = new MongoClient(connectionString, {
 });
 
 // Database connection.
-
 let dbConnection;
 
 module.exports = {
