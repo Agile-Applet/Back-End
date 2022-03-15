@@ -231,7 +231,7 @@ dbo.connectToServer(function (err) {
   });
 
     // Start the Express server.
-    https.listen(PORT, () => {
+    http.listen(PORT, () => {
       console.log(`Server is running on port: ${PORT}`);
     });
 
