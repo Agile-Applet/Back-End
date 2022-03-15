@@ -103,7 +103,7 @@ dbo.connectToServer(function (err) {
                 .collection('rooms')
                 .insertOne(roomsDocument, function (err, result) {
                   if (err) {
-                    res.status(400).send('Error inserting room!');
+                    //res.status(400).send('Error inserting room!');
                   } else {
                     console.log(`Added a new room with id ${result.insertedId}`);
                     //res.status(204).send();
@@ -231,7 +231,7 @@ dbo.connectToServer(function (err) {
   });
 
     // Start the Express server.
-    http.listen(PORT, () => {
+    https.listen(PORT, () => {
       console.log(`Server is running on port: ${PORT}`);
     });
 
