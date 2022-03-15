@@ -82,7 +82,7 @@ router.post("/logout", (req, res) => {
       if (err) {
         res.status(400).json("Unable to log out.");
       } else {
-        redisClient.del(req.body.username);
+        //redisClient.del(req.body.username);
         res.status(200).json("Logout successful.");
       }
     });
