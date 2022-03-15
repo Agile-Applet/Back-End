@@ -38,11 +38,7 @@ router.post("/login", async (req, res) => {
                 req.session.isLogged = true;
                 redisClient.setEx(username, DEFAULT_EXPIRATION, JSON.stringify({
                   username: username,
-<<<<<<< HEAD
-                  saldo: user.saldo, //saldo
-=======
                   saldo: user.saldo,
->>>>>>> 6cd737a291d519365101420669184c4968cb2036
                   isAdmin: false,
                   isLogged: true,
                   message: "Logged in successfully.",

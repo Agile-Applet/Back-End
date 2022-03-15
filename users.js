@@ -1,7 +1,7 @@
 const users = []
 
 // User management functions.
-const addUser = (id, name, room) => {
+const addUser = (id, name, seat, room) => {
     const existingUser = users.find(user => user.name.trim().toLowerCase() === name.trim().toLowerCase())
 
     if (existingUser) return { error: "Username has already been taken" }
@@ -9,9 +9,17 @@ const addUser = (id, name, room) => {
     if (!name) return { error: "Username is required" }
     if (!room) return { error: "Room is required" }
 
-    const user = { id, name, room }
+    const user = { id, name, seat, room }
     users.push(user)
     return { user }
+}
+
+const updateUser = (name, seat, room) => {
+    const existingUser = users.find(user => user.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if ( existingUser ) {
+        existingUser.seat = seat;
+        existingUser.room = room;
+    }
 }
 
 const getUser = id => {
@@ -26,4 +34,4 @@ const deleteUser = (id) => {
 
 const getUsers = (room) => users.filter(user => user.room === room)
 
-module.exports = { addUser, getUser, deleteUser, getUsers };
+module.exports = { addUser, updateUser, getUser, deleteUser, getUsers };
