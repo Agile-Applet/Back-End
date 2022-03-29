@@ -3,11 +3,12 @@ const express = require("express");
 const router = express.Router();
 const dbo = require("../conn");
 
-/* Yay free money!! */
+/* Endpoint to update players balance. */
 router.post("/deposit", async (req, res) => {
   const dbConnect = dbo.getDb();
   const { username, amount } = req.body;
-  /* Fetch existing saldo */
+
+  /* Fetch existing balance */
   let query = { username: username };
   await dbConnect.collection("players").findOne(query, (err, result) => {
     if (result) {
