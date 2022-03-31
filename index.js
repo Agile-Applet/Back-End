@@ -34,7 +34,9 @@ dbo.connectToServer(function (err) {
     process.exit();
   }
 
-  /* Room creation */
+  /* Room creation 
+    Mock data before retrieving this from Mongo.
+  */
 
   const roomData = [
     {
@@ -45,11 +47,10 @@ dbo.connectToServer(function (err) {
       maxBuy: 1000,
     },
   ];
+
   let createdRooms = [];
   roomData.map((r) => {
-    console.log(r);
-    let nRoom = new Room(io, r.uri, r.name, r.description, r.minBuy, r.maxBuy);
-    createdRooms.push(nRoom);
+    createdRooms.push(new Room(io, r.uri, r.name, r.description, r.minBuy, r.maxBuy));
   });
 });
 

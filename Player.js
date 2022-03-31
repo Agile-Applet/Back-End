@@ -8,4 +8,11 @@ class Player {
         this.avatar = avatar;
     }
 
+    getName = () => (this.name);
+    getMoney = () => (this.money);
+    setMoney = (amount) => this.money(amount);
+    getAvatar = () => (this.avatar);
+
 }
+
+module.exports = { Player }
