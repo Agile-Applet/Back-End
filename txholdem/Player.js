@@ -1,5 +1,4 @@
 /* Texas Holdem Game Room Player */
-
 class Player {
 
     constructor(name, money, avatar) {

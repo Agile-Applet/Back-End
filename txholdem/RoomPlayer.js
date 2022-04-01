@@ -1,3 +1,4 @@
+/* Texas Holdem Player */
 const { Player } = require("./Player");
 const { getHandPosition } = require('./utils/helpers');
 

@@ -5,13 +5,12 @@ const SALT = process.env.SALT; // Bcrypt rounds
 const { check, validationResult } = require("express-validator");
 const router = express.Router();
 const DEFAULT_EXPIRATION = process.env.DEFAULT_EXPIRATION || 3600;
-const redisClient = require('../redis');
+const redisClient = require('../infrastructure/redis');
 
-// Connect to database.
-const dbo = require("../conn");
+/* Connect to database. */
+const dbo = require("../infrastructure/conn");
 
-// Login.
-// TODO: tarkistus onko käyttäjä bannitty
+/* Login. */
 router.post("/login", async (req, res) => {
   const dbConnect = dbo.getDb();
   const { username, password } = req.body;
@@ -66,7 +65,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// Check if user has logged in.
+/* Check if user has logged in. */
 router.post("/isLogged", (req, res) => {
   if (req.session.isLogged) {
     res.status(200).json(true);
@@ -75,7 +74,7 @@ router.post("/isLogged", (req, res) => {
   }
 });
 
-// Logout.
+/* Logout. */
 router.post("/logout", (req, res) => {
   if (req.session) {
     req.session.destroy((err) => {
@@ -91,7 +90,7 @@ router.post("/logout", (req, res) => {
   }
 });
 
-// TODO: Add validations.
+/* Register new user. */
 router.post("/register", async (req, res) => {
   const { listing_id, username, email, password } = req.body;
 
@@ -104,7 +103,6 @@ router.post("/register", async (req, res) => {
         res.status(409).send("Username already taken.");
       } else {
         const dbConnect = dbo.getDb();
-
         const salt = bcryptjs.genSaltSync(parseInt(SALT));
         const hashedPassword = bcryptjs.hashSync(password, salt);
 
