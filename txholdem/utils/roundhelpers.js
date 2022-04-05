@@ -86,10 +86,14 @@ const CheckCards = (hands) => {
         }
     });
 
-    const winner = Hand.winners(solvedHands);
+    let winner = Hand.winners(solvedHands);
 
+    solvedHands.forEach(hand => {
+        if (hand.cards === winner[0].cards) {
+            winner = solvedHands.indexOf(hand);
+        }
+    });
     return winner;
-
 };
 
 module.exports = { startGame, createDeck, shuffle, removeCards, oneCard, dealCards, CheckCards }

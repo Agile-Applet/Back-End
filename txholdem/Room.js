@@ -144,7 +144,8 @@ class Room {
           cards.push(player.hand);
         });
         let winner = CheckCards(cards);
-        console.log(winner);
+        console.log(this.playerData[winner].playerName);
+        return socket.emit('userError', { action: "check_hand", status: "success", message: "Pelaaja " + this.playerData[winner].playerName + " voitti!" });
         // user checks & next user & turn to be implemented
       })
 
