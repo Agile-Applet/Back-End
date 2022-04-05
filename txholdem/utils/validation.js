@@ -1,5 +1,5 @@
 /* Validate player actions. */
-let turn = 6;
+let turn = -1;
 
 function playerTurn() {
     return turn;

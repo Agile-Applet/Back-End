@@ -4,7 +4,7 @@ const { playerTurn, setPlayerTurn } = require("./utils/validation");
 const { addUser, updateUser, getUser, deleteUser, getUsers } = require("../user/users");
 const { Player } = require("./Player");
 const { RoomPlayer } = require("./RoomPlayer");
-const { createDeck, shuffle, oneCard, dealCards, CheckCards } = require("./utils/roundhelpers");
+const { startGame, createDeck, dealCards, CheckCards } = require("./utils/roundhelpers");
 
 const avatars = [
   'https://content-eu.invisioncic.com/b310290/monthly_2017_04/Nikolay-Kostyrko_Time1491772457527.jpg.2d6ef3b3f499abd15f631f55bbc2aba5.jpg',
@@ -79,6 +79,9 @@ class Room {
 
       /* Joining Free Seat */
       socket.on('join_seat', (data) => {
+        if (this.players === 0) {
+          createDeck();
+        }
         if (this.players < this.maxPlayers) {
           let seat = data.seatId - 1;
           if (this.playerData[seat].seatStatus == 0) {
@@ -89,7 +92,7 @@ class Room {
             }
             this.players++;
             updateUser(user.name, seat, user.room);
-            this.playerData[data.seatId - 1] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: getRandomHand(), showHand: false, avatar: avatars[getRandomInt(5)] };
+            this.playerData[data.seatId - 1] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: dealCards(this.players), showHand: false, avatar: avatars[getRandomInt(5)] };
             this.room.in(user.room).emit('updateTable', this.playerData);
             console.log("[Holdem-Socket] Current players: " + this.players + " of " + this.maxPlayers);
           } else {
@@ -135,12 +138,12 @@ class Room {
       socket.on('check_hand', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        setPlayerTurn(seat);
-
-        let deck = createDeck();
-        let shuffledDeck = shuffle(deck);
-        let hands = dealCards(shuffledDeck, 7, 2);
-        let winner = CheckCards(hands);
+        let cards = [];
+        setPlayerTurn(6);
+        this.playerData.forEach(player => {
+          cards.push(player.hand);
+        });
+        let winner = CheckCards(cards);
         console.log(winner);
         // user checks & next user & turn to be implemented
       })
