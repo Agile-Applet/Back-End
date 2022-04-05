@@ -1,9 +1,10 @@
 /* Texas Holdem Game Room implemented with Socket.io. */
 const { getRandomHand, getRandomInt } = require("./utils/helpers");
 const { playerTurn, setPlayerTurn } = require("./utils/validation");
-const { addUser, updateUser, getUser, deleteUser, getUsers } = require('../user/users');
+const { addUser, updateUser, getUser, deleteUser, getUsers } = require("../user/users");
 const { Player } = require("./Player");
 const { RoomPlayer } = require("./RoomPlayer");
+const { createDeck, shuffle, oneCard, dealCards, CheckCards } = require("./utils/roundhelpers");
 
 const avatars = [
   'https://content-eu.invisioncic.com/b310290/monthly_2017_04/Nikolay-Kostyrko_Time1491772457527.jpg.2d6ef3b3f499abd15f631f55bbc2aba5.jpg',
@@ -135,6 +136,12 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         setPlayerTurn(seat);
+
+        let deck = createDeck();
+        let shuffledDeck = shuffle(deck);
+        let hands = dealCards(shuffledDeck, 7, 2);
+        let winner = CheckCards(hands);
+        console.log(winner);
         // user checks & next user & turn to be implemented
       })
 
