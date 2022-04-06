@@ -89,7 +89,7 @@ const CheckCards = (hands) => {
     let winner = Hand.winners(solvedHands);
 
     solvedHands.forEach(hand => {
-        if (hand.cards === winner[0].cards) {
+        if (winner[0] && hand.cards === winner[0].cards) {
             winner = solvedHands.indexOf(hand);
         }
     });

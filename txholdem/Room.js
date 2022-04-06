@@ -4,6 +4,7 @@ const { playerTurn, setPlayerTurn } = require("./utils/validation");
 const { addUser, updateUser, getUser, deleteUser, getUsers } = require("../user/users");
 const { Player } = require("./Player");
 const { RoomPlayer } = require("./RoomPlayer");
+const { Controller } = require("./Controller");
 const { startGame, createDeck, dealCards, CheckCards } = require("./utils/roundhelpers");
 
 const avatars = [
@@ -31,6 +32,8 @@ class Room {
     this.boardData = [
     ]
 
+    this.socket = null;
+
     this.playerData = [
       { playerId: 1, playerName: "Pelaaja 1", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '' },
       { playerId: 2, playerName: "Pelaaja 2", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
@@ -42,12 +45,20 @@ class Room {
 
     this.room = io.of('/' + uri);
     this.listenRoom();
+    this.controller = new Controller(this, this.room);
   }
+
+  /* Getters */
+
+  getPlayerData = () => (this.playerData);
+  getBoardData = () => (this.boardData);
+  getPlayerCount = () => (this.players);
+
+  /* Setters */
 
   /* Listen Specific Room */
   listenRoom() {
     this.room.on('connection', (socket) => {
-
       console.log("[Holdem-Socket] User connected : " + socket.id);
 
       socket.on("disconnect", () => {
@@ -162,7 +173,6 @@ class Room {
           return socket.emit('userError', { action: "bet_hand", status: "failed", message: "Et voi tällä hetkellä korottaa panosta." });
         }
       })
-
     })
   }
 }
