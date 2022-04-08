@@ -1,22 +1,12 @@
+# Casino Platform [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 
-![Logo](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/th5xamgrr6se0x5ro4g6.png)
-
-
-# Casino Platform
-
-Back-End side of the Casino Platform.
-
-
-
-## License
-
-[![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
+Back-End side of the Casino Platform @ Haaga-Helia Project course 2.
 
 
 ## Directory Layout
 
 ```bash
-  Back-End
+  Back-End #Miscellaneous
 |   .env
 |   .eslintrc
 |   .gitignore
@@ -28,73 +18,101 @@ Back-End side of the Casino Platform.
 |   package.json
 |   README.md
 |   
-├──.github
-|   └──workflows
-|          └──node.js.yml
++---.github #Run test suites
+|   \---workflows
+|           node.js.yml
 |           
-├──infrastructure
++---infrastructure #Connect to database and in-memory data
 |       conn.js
 |       redis.js
-|
-├──routes
-|     └──money.js
+|                          
++---routes 
+|       money.js #Endpoint to update players balance.
 |       
-├──scripts
-|      └──application_start.sh
-|      └──application_stop.sh
-|      └──before_install.sh
++---scripts #Autodeploy on EC2 instance at AWS
+|       application_start.sh
+|       application_stop.sh
+|       before_install.sh
 |       
-├──test
-|   └──index.test.js
++---test #Test suites
+|       index.test.js
 |       
-├──txholdem
-|   |  └──Player.js
-|   |  └──Room.js
-|   |  └──RoomPlayer.js
++---txholdem #Different classes related to Texas Holdem and Controller to manage the game flow
+|   |   Card.js
+|   |   Controller.js
+|   |   Player.js
+|   |   Room.js
+|   |   RoomPlayer.js
+|   |   Round.js
 |   |   
-|   └──utils
-|        └──helpers.js
-|        └──validation.js
+|   \---utils #Helper functions e.g, deal cards and validate player actions
+|           helpers.js
+|           roundhelpers.js
+|           validation.js
 |           
-└──user
-    └──auth.js
-    └──session.js
-    └──users.js
-
+\---user #Authenticate users at login/register and establish session
+        auth.js
+        session.js
+        users.js
 ```
+
 
 ## Authors
 
 - [@S1nd5](https://www.github.com/s1nd5)
-- [@otsojm](https://www.github.com/otsojm)
 - [@PutkisDude](https://www.github.com/PutkisDude)
+- [@otsojm](https://www.github.com/otsojm)
 - [@Danquu](https://www.github.com/Danquu)
+- [@RiikonenMiro](https://www.github.com/RiikonenMiro)
 
 
 ## Demo
 
-- [Main page](https://casinohaaga.awsproject.link)
 - [API](https://json.awsproject.link)
+
 
 ## Features
 
-- under construction ...
+- Express server.
+- API for login, register and deposit.
+- MongoDB NoSQL Database and Redis in-memory data store.
+- Express session.
+- Handle Texas Holdem game flow with socket.io.
 
+
+# Dependencies
+
+```bash
+"dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-mongo": "^4.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.2",
+    "express-session": "^1.17.2",
+    "express-validator": "^6.14.0",
+    "mongodb": "^4.3.1",
+    "pokersolver": "^2.1.4",
+    "redis": "^4.0.4",
+    "socket.io": "^4.4.1"
+  }
+ ```
 
 ## Roadmap
 
-- under construction ...
+- Handle chat messages and game notifications, which are delivered by socket.io.
 
 
 ## Environment Variables
 
-To run this project, you will need to add the following environment variables to your .env file:
+To run this project, you will need to at least add the following environment variables to your .env file:
 
 `MONGODB_STRING`
 
 `SESSION_SECRET`
 
 `SALT`
+
 
 ## Run Locally
 
@@ -104,17 +122,20 @@ Clone the project
   git clone https://github.com/Agile-Applet/Back-End.git
 ```
 
+
 Go to the project directory
 
 ```bash
   cd Back-End
 ```
 
+
 Install dependencies
 
 ```bash
   npm install
 ```
+
 
 Start the server
 
@@ -131,15 +152,13 @@ To run tests, run the following command:
   npm test
 ```
 
-
 ## Screenshots
 
-![App Screenshot](https://via.placeholder.com/468x300?text=App+Screenshot+Here)
-
+![Back-End](https://i.ibb.co/hMwTVMH/backend.png)
+ 
 
 ## Related
 
 Here are some related projects:
 
-[Placeholder](https://github.com/user/repo)
-
+- [Front-End side](https://github.com/Agile-Applet/Front-End)
