@@ -6,8 +6,8 @@ const { getHandPosition } = require('./utils/helpers');
 
 class RoomPlayer extends Player {
 
-    constructor(name, money, avatar, socketId, seatId, lastBet) {
-        super(name,money,avatar);
+    constructor(id, name, money, avatar, socketId, seatId, lastBet) {
+        super(id, name,money,avatar);
         this.socketId = socketId;
         this.seatId = seatId;
         this.lastBet = 0;

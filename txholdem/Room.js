@@ -29,9 +29,11 @@ class Room {
     this.players = 0;
     this.maxPlayers = 6;
 
-    this.boardData = [];
-
     this.socket = null;
+
+    /* Data Arrays */
+
+    this.boardData = [];
 
     this.playerData = [
       { playerId: 1, playerName: "Pelaaja 1", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '' },
@@ -42,9 +44,11 @@ class Room {
       { playerId: 6, playerName: "Pelaaja 6", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' }
     ];
 
+    /* Listening room, controller */
+
     this.room = io.of('/' + uri);
     this.listenRoom();
-    this.controller = new Controller(this, this.room);
+    this.controller = new Controller(this, this.room); // Game Controller (Texas Holdem Logic & Rules)
   }
 
   /* Getters */
@@ -54,6 +58,9 @@ class Room {
   getPlayerCount = () => (this.players);
 
   /* Setters */
+
+  setPlayerData = (data) => this.playerData(data);
+  setBoardData = (data) => this.boardData(data);
 
   /* Listen Specific Room */
   listenRoom() {
@@ -76,7 +83,7 @@ class Room {
       /* Join Rooms (as a spectator) */
       socket.on('join_room', (data) => {
         /* Uuden luokan testikäyttö */
-        this.boardData.push(new RoomPlayer(data.name, 0, avatars[getRandomInt(5)], socket.id, 0, 0));
+        this.boardData.push(new RoomPlayer(0, data.name, 0, avatars[getRandomInt(5)], socket.id, 0, 0));
         console.log(this.boardData[0]);
         /* Vanhalla jatkuu */
         const { user, error } = addUser(socket.id, data.name, 0, data.room);
