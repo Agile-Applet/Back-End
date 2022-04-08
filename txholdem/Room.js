@@ -5,7 +5,7 @@ const { addUser, updateUser, getUser, deleteUser, getUsers } = require("../user/
 const { Player } = require("./Player");
 const { RoomPlayer } = require("./RoomPlayer");
 const { Controller } = require("./Controller");
-const { startGame, createDeck, dealCards, CheckCards } = require("./utils/roundhelpers");
+const { createDeck, dealCards, CheckCards } = require("./utils/roundhelpers");
 
 const avatars = [
   'https://content-eu.invisioncic.com/b310290/monthly_2017_04/Nikolay-Kostyrko_Time1491772457527.jpg.2d6ef3b3f499abd15f631f55bbc2aba5.jpg',
@@ -29,8 +29,7 @@ class Room {
     this.players = 0;
     this.maxPlayers = 6;
 
-    this.boardData = [
-    ]
+    this.boardData = [];
 
     this.socket = null;
 
@@ -60,7 +59,6 @@ class Room {
   listenRoom() {
     this.room.on('connection', (socket) => {
       console.log("[Holdem-Socket] User connected : " + socket.id);
-
       socket.on("disconnect", () => {
         console.log("[Holdem-Socket] User disconnected");
         const usr = getUser(socket.id);
@@ -90,12 +88,9 @@ class Room {
 
       /* Joining Free Seat */
       socket.on('join_seat', (data) => {
-        if (this.players === 0) {
-          createDeck();
-        }
         if (this.players < this.maxPlayers) {
           let seat = data.seatId - 1;
-          if (this.playerData[seat].seatStatus == 0) {
+          if (this.playerData[seat].seatStatus === 0) {
             console.log("[Holdem-Socket] " + data);
             const user = getUser(socket.id);
             if (user.seat && user.seat != 0) {
@@ -103,7 +98,12 @@ class Room {
             }
             this.players++;
             updateUser(user.name, seat, user.room);
-            this.playerData[data.seatId - 1] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: dealCards(this.players), showHand: false, avatar: avatars[getRandomInt(5)] };
+            this.playerData[data.seatId - 1] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)] };
+            if (this.players === 1) {
+              createDeck();
+            } else if (this.players === 2) {
+              this.controller.startGame(this.players, this.playerData);
+            }
             this.room.in(user.room).emit('updateTable', this.playerData);
             console.log("[Holdem-Socket] Current players: " + this.players + " of " + this.maxPlayers);
           } else {
@@ -150,13 +150,16 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         let cards = [];
+        let winner = "";
         setPlayerTurn(6);
         this.playerData.forEach(player => {
           cards.push(player.hand);
         });
-        let winner = CheckCards(cards);
-        console.log(this.playerData[winner].playerName);
+        /*
+        winner = CheckCards(cards);
         return socket.emit('userError', { action: "check_hand", status: "success", message: "Pelaaja " + this.playerData[winner].playerName + " voitti!" });
+        */
+        this.controller.checkHands(cards);
         // user checks & next user & turn to be implemented
       })
 
