@@ -1,6 +1,5 @@
 /* Texas Holdem Game Room implemented with Socket.io. */
 const { getRandomHand, getRandomInt } = require("./utils/helpers");
-const { playerTurn, setPlayerTurn } = require("./utils/validation");
 const { addUser, updateUser, getUser, deleteUser, getUsers } = require("../user/users");
 const { Player } = require("./Player");
 const { RoomPlayer } = require("./RoomPlayer");
@@ -36,29 +35,26 @@ class Room {
     this.boardData = [];
 
     this.playerData = [
-      { playerId: 1, playerName: "Tyhjä 1", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '' },
-      { playerId: 2, playerName: "Tyhjä 2", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
-      { playerId: 3, playerName: "Tyhjä 3", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
-      { playerId: 4, playerName: "Tyhjä 4", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
-      { playerId: 5, playerName: "Tyhjä 5", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' },
-      { playerId: 6, playerName: "Tyhjä 6", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' }
+      { playerId: 0, playerName: "Tyhjä 1", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '' },
+      { playerId: 1, playerName: "Tyhjä 2", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
+      { playerId: 2, playerName: "Tyhjä 3", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
+      { playerId: 3, playerName: "Tyhjä 4", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
+      { playerId: 4, playerName: "Tyhjä 5", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' },
+      { playerId: 5, playerName: "Tyhjä 6", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' }
     ];
 
     /* Listening room, controller */
-
     this.room = io.of('/' + uri);
     this.listenRoom();
     this.controller = new Controller(this, this.room); // Game Controller (Texas Holdem Logic & Rules)
   }
 
   /* Getters */
-
   getPlayerData = () => (this.playerData);
   getBoardData = () => (this.boardData);
   getPlayerCount = () => (this.players);
 
   /* Setters */
-
   setPlayerData = (data) => this.playerData(data);
   setBoardData = (data) => this.boardData(data);
 
@@ -66,7 +62,6 @@ class Room {
   listenRoom() {
     this.room.on('connection', (socket) => {
       console.log("[Holdem-Socket] User connected : " + socket.id);
-      console.log(socket);
       socket.on("disconnect", () => {
         console.log("[Holdem-Socket] User disconnected");
         const usr = getUser(socket.id);
@@ -78,38 +73,40 @@ class Room {
           }
           this.playerData[usr.seat] = { ...this.playerData[usr.seat], playerName: "Free Seat", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '' };
           this.room.in(user.room).emit('updateTable', this.playerData);
+          if (this.players === 0) {
+            this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
+            this.room.in(user.room).emit('startGame', false);
+          }
         }
-      })
+      });
 
       /* Join Rooms (as a spectator) */
       socket.on('join_room', (data) => {
         this.boardData.push(new RoomPlayer(0, data.name, 0, avatars[getRandomInt(5)], socket.id, 0, 0));
-        console.log(data);
         const { user, error } = addUser(socket.id, data.name, 0, data.room);
         socket.join(data.room);
         this.room.in(data.room).emit('updateTable', this.playerData);
-      })
+      });
 
       /* Game Seating */
 
       /* Joining Free Seat */
       socket.on('join_seat', (data) => {
-        if (this.players < this.maxPlayers) {
-          let seat = data.seatId - 1;
+        if (this.players < this.maxPlayers && this.controller.gameStatus === 'Pause') {
+          let seat = data.seatId;
           if (this.playerData[seat].seatStatus === 0) {
             console.log("[Holdem-Socket]");
-            console.log(data);
             const user = getUser(socket.id);
             if (user.seat && user.seat != 0) {
               return socket.emit('userError', { action: "join_seat", status: "failed", message: "Olet jo toisella pöytäpaikalla." });
             }
             this.players++;
             updateUser(user.name, seat, user.room);
-            this.playerData[data.seatId - 1] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)], role: '' };
+            this.playerData[seat] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)], role: '' };
             if (this.players === 1) {
               createDeck();
             } else if (this.players === 2) {
-              this.controller.startGame(this.players, this.playerData);
+              this.controller.startGame(this.playerData);
             }
             this.room.in(user.room).emit('updateTable', this.playerData);
             console.log("[Holdem-Socket] Current players: " + this.players + " of " + this.maxPlayers);
@@ -118,16 +115,16 @@ class Room {
             return socket.emit('userError', { action: "join_seat", status: "failed", message: "Valitsemasi pöytäpaikka on jo varattu toiselle pelaajalle." });
           }
         } else {
-          console.log("[Holdem-Socket] Room has maximum amount of players.");
-          return socket.emit('userError', { action: "join_seat", status: "failed", message: "Pöydässä on jo maksimi määrä pelaajia." });
+          console.log("[Holdem-Socket] Player is not authorized to join right now.");
+          return socket.emit('userError', { action: "join_seat", status: "failed", message: "Et voi liittyä tällä hetkellä." });
         }
-      })
+      });
 
       /* Leaving Seat */
       socket.on('leave_seat', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        if (playerTurn() === 6) {
+        if (parseFloat(seat) === this.controller.playerTurn()) {
           this.playerData[seat] = { ...this.playerData[seat], playerName: "Free Seat", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '' };
           updateUser(user.name, 0, user.room);
           this.players--;
@@ -137,13 +134,17 @@ class Room {
           console.log("[Leave] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: "leave_seat", status: "failed", message: "Et voi tällä hetkellä poistua paikaltasi." });
         }
-      })
+        if (this.players === 0) {
+          this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
+          this.room.in(user.room).emit('startGame', false);
+        }
+      });
 
       /* Bet, Fold, Check */
       socket.on('fold_hand', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        if (playerTurn() === seat) {
+        if (parseFloat(seat) === this.controller.playerTurn()) {
           this.playerData[seat] = { ...this.playerData[user.seat], hand: [], showHand: false };
           this.room.in(user.room).emit('updateTable', this.playerData);
           // Next user && turn to be implemented
@@ -151,40 +152,33 @@ class Room {
           console.log("[Fold] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: "fold_hand", status: "failed", message: "Et voi tällä hetkellä luovuttaa kättä." });
         }
-      })
+      });
 
       socket.on('check_hand', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        let cards = [];
-        //setPlayerTurn(6);
-        console.log(this.playerData);
-        this.playerData.forEach(player => {
-          cards.push(player.hand);
-        });
-        /*
-        winner = CheckCards(cards);
-        return socket.emit('userError', { action: "check_hand", status: "success", message: "Pelaaja " + this.playerData[winner].playerName + " voitti!" });
-        */
-        //this.controller.checkHands(cards);
-        // user checks & next user & turn to be implemented
-      })
+        if (parseFloat(seat) === this.controller.playerTurn()) {
+          this.controller.playerTurn(1);
+        } else {
+          console.log("[Fold] Player is not authorized to execute this action right now.");
+          return socket.emit('userError', { action: "check", status: "failed", message: "Et voi tällä hetkellä ohittaa vuoroasi." });
+        }
+      });
 
       socket.on('bet_hand', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        if (playerTurn() === seat) {
+        if (parseFloat(seat) === this.controller.playerTurn()) {
           const bet = this.playerData[user.seat].lastBet + data.betAmount;
           this.playerData[user.seat] = { ...this.playerData[user.seat], lastBet: bet, showHand: false };
           this.room.in(user.room).emit('updateTable', this.playerData);
-          // next user & turn to be implemented
         } else {
           console.log("[Bet] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: "bet_hand", status: "failed", message: "Et voi tällä hetkellä korottaa panosta." });
         }
-      })
-    })
-  }
+      });
+    });
+  };
 }
 
 module.exports = { Room }

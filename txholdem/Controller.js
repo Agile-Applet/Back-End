@@ -1,6 +1,5 @@
 const { dealCards, checkCards, removeCards } = require("./utils/roundhelpers");
 const { getRandomInt } = require("./utils/helpers");
-const { playerTurn, setPlayerTurn } = require("./utils/validation");
 
 class Controller {
 
@@ -8,26 +7,13 @@ class Controller {
         this.room = room,
             this.socket = socketRoom;
 
-        this.status = "Start"; // Start, Bet, Turn, River, Show, End
-        this.betound = 0;
-        this.randomIndex = 0;
-        this.dealerIndex = 0;
-        this.playerCount = 0;
+        this.status = "Start"; // Pause, Start, Bet, Turn, River, Show, End
+        this.betround = 0;
+        this.turn = 0;
+        this.smallBlindTurn = -1;
+        this.bigBlindTurn = 0;
         this.playerData = [];
         this.tableData = [];
-        this.roles = [' (D)', ' (S)', ' (B)', '', '', '',
-
-            '', ' (D)', ' (S)', ' (B)', '', '',
-
-            '', '', ' (D)', ' (S)', ' (B)', '',
-
-            '', '', '', ' (D)', ' (S)', ' (B)',
-
-            ' (B)', '', '', '', ' (D)', ' (S)',
-
-            ' (S)', ' (B)', '', '', '', ' (D)'
-
-        ];
 
         //setTimeout(() => this.testMethod(), 5000, 1); // Run test method in 5 seconds
     }
@@ -60,43 +46,65 @@ class Controller {
 
     /* Nää on vasta hahmottelun tasolla. */
 
-    startGame = (playerCount, data) => {
+    startGame = (data) => {
         this.status = "Start";
         this.playerData = data;
-        this.playerCount = playerCount;
+        this.smallBlindTurn++;
+        this.bigBlindTurn++;
 
-        let a = 6;
-
-        if (this.playerCount < 3) {
-            this.dealerIndex++;
+        if (this.smallBlindTurn === this.room.getPlayerCount()) {
+            this.smallBlindTurn = 0;
+        } else if (this.bigBlindTurn === this.room.getPlayerCount()) {
+            this.bigBlindTurn = 0;
         }
 
         this.playerData.forEach(element => {
-            this.randomIndex = getRandomInt(a - 1);
-            this.playerData[this.playerData.indexOf(element)] = {
-                playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                lastBet: 0, hand: dealCards(this.randomIndex, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: this.roles[this.dealerIndex]
+            if (element.playerId === this.smallBlindTurn) {
+                this.playerData[this.playerData.indexOf(element)] = {
+                    playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
+                    lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (S)'
+                }
+            } else if (element.playerId === this.bigBlindTurn) {
+                this.playerData[this.playerData.indexOf(element)] = {
+                    playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
+                    lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (B)'
+                }
+            } else {
+                this.playerData[this.playerData.indexOf(element)] = {
+                    playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
+                    lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
+                }
             }
-            this.playerCount--;
-            this.dealerIndex++;
-            removeCards(this.randomIndex);
+            removeCards(0);
         });
-        console.log(this.playerData);
         this.next('Start');
+    };
+
+    playerTurn() {
+        return parseFloat(this.turn);
+    };
+
+    setPlayerTurn(data) {
+        this.turn += data;
+    };
+
+    gameStatus() {
+        return this.status;
+    };
+
+    setGameStatus(data) {
+        this.status = data;
     };
 
     betRound() {
         this.betround++;
         this.socket.in("Pöytä 1").emit('playerTurn', {});
-        if (this.betround === 1) {
-            this.flopRound();
-        }
+        this.flopRound();
     };
 
     flopRound() {
         this.status = 'Flop';
-        this.randomIndex = getRandomInt(this.playerCount);
-        this.tableData.push({ pot: 0.00, cards: dealCards(this.randomIndex, 'dealer'), status: this.status });
+        this.tableData.push({ pot: 0.00, cards: dealCards(0, 'dealer'), status: this.status });
         this.next('Flop');
     };
 
@@ -126,8 +134,9 @@ class Controller {
 
             case 'Flop':
                 // TBD
+                console.log(this.tableData);
                 this.socket.emit('updateTableCards', this.tableData);
-                this.socket.emit('startGame');
+                this.socket.emit('startGame', true);
                 break;
 
             case 'River':

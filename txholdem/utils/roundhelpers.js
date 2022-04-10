@@ -4,7 +4,6 @@ const Hand = require('pokersolver').Hand;
 
 let startDeck = [];
 let hands = [];
-let lastIndex = 0;
 
 /* Create a new deck */
 const createDeck = () => {
@@ -36,19 +35,20 @@ const shuffle = (deck) => {
         [deck[currentIndex], deck[randomIndex]] = [
             deck[randomIndex], deck[currentIndex]];
     }
-    while (7 > hands.length) {
+    while (6 > hands.length) {
         hand = [];
         while (2 > hand.length) {
             hand.push(startDeck[i]);
             i++;
         }
-        while (5 > hand.length) {
-            hand.push(startDeck[i]);
-            i++;
-        }
         hands.push(hand);
     }
-    console.log(hands);
+    hand = [];
+    while (5 > hand.length) {
+        hand.push(startDeck[i]);
+        i++;
+    }
+    hands.push(hand);
 };
 
 /* Remove taken cards from the deck */
@@ -57,15 +57,13 @@ const removeCards = (removedIndex) => {
 };
 
 /* Deal starting cards */
-const dealCards = (randomIndex, status) => {
-    lastIndex = hands.length - 1;
+const dealCards = (index, status) => {
     if (status === 'player') {
-        return [{ card: hands[randomIndex][0].value + hands[randomIndex][0].suit }, { card: hands[randomIndex][1].value + hands[randomIndex][1].suit }];
+        return [{ card: hands[index][0].value + hands[index][0].suit }, { card: hands[index][1].value + hands[index][1].suit }];
     } else {
-        return [{ card: hands[lastIndex][0].value + hands[lastIndex][0].suit }, { card: hands[lastIndex][1].value + hands[lastIndex][1].suit },
-        { card: hands[lastIndex][2].value + hands[lastIndex][2].suit }, { card: hands[lastIndex][3].value + hands[lastIndex][3].suit }, { card: hands[lastIndex][4].value + hands[lastIndex][4].suit }];
+        return [{ card: hands[index][0].value + hands[index][0].suit }, { card: hands[index][1].value + hands[index][1].suit },
+        { card: hands[index][2].value + hands[index][2].suit }, { card: hands[index][3].value + hands[index][3].suit }, { card: hands[index][4].value + hands[index][4].suit }];
     }
-    console.log(hands);
 };
 
 /* Solve the winning hand */
