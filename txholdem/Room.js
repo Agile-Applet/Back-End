@@ -36,12 +36,12 @@ class Room {
     this.boardData = [];
 
     this.playerData = [
-      { playerId: 1, playerName: "Pelaaja 1", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '' },
-      { playerId: 2, playerName: "Pelaaja 2", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
-      { playerId: 3, playerName: "Pelaaja 3", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' },
-      { playerId: 4, playerName: "Pelaaja 4", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
-      { playerId: 5, playerName: "Pelaaja 5", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
-      { playerId: 6, playerName: "Pelaaja 6", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' }
+      { playerId: 1, playerName: "Tyhjä 1", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '' },
+      { playerId: 2, playerName: "Tyhjä 2", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
+      { playerId: 3, playerName: "Tyhjä 3", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
+      { playerId: 4, playerName: "Tyhjä 4", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '' },
+      { playerId: 5, playerName: "Tyhjä 5", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' },
+      { playerId: 6, playerName: "Tyhjä 6", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '' }
     ];
 
     /* Listening room, controller */
@@ -66,6 +66,7 @@ class Room {
   listenRoom() {
     this.room.on('connection', (socket) => {
       console.log("[Holdem-Socket] User connected : " + socket.id);
+      console.log(socket);
       socket.on("disconnect", () => {
         console.log("[Holdem-Socket] User disconnected");
         const usr = getUser(socket.id);
@@ -82,10 +83,8 @@ class Room {
 
       /* Join Rooms (as a spectator) */
       socket.on('join_room', (data) => {
-        /* Uuden luokan testikäyttö */
         this.boardData.push(new RoomPlayer(0, data.name, 0, avatars[getRandomInt(5)], socket.id, 0, 0));
-        console.log(this.boardData[0]);
-        /* Vanhalla jatkuu */
+        console.log(data);
         const { user, error } = addUser(socket.id, data.name, 0, data.room);
         socket.join(data.room);
         this.room.in(data.room).emit('updateTable', this.playerData);
@@ -98,14 +97,15 @@ class Room {
         if (this.players < this.maxPlayers) {
           let seat = data.seatId - 1;
           if (this.playerData[seat].seatStatus === 0) {
-            console.log("[Holdem-Socket] " + data);
+            console.log("[Holdem-Socket]");
+            console.log(data);
             const user = getUser(socket.id);
             if (user.seat && user.seat != 0) {
               return socket.emit('userError', { action: "join_seat", status: "failed", message: "Olet jo toisella pöytäpaikalla." });
             }
             this.players++;
             updateUser(user.name, seat, user.room);
-            this.playerData[data.seatId - 1] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)] };
+            this.playerData[data.seatId - 1] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)], role: '' };
             if (this.players === 1) {
               createDeck();
             } else if (this.players === 2) {
@@ -157,8 +157,8 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         let cards = [];
-        let winner = "";
-        setPlayerTurn(6);
+        //setPlayerTurn(6);
+        console.log(this.playerData);
         this.playerData.forEach(player => {
           cards.push(player.hand);
         });
@@ -166,7 +166,7 @@ class Room {
         winner = CheckCards(cards);
         return socket.emit('userError', { action: "check_hand", status: "success", message: "Pelaaja " + this.playerData[winner].playerName + " voitti!" });
         */
-        this.controller.checkHands(cards);
+        //this.controller.checkHands(cards);
         // user checks & next user & turn to be implemented
       })
 

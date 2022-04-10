@@ -37,7 +37,7 @@ router.post("/login", async (req, res) => {
                 req.session.isLogged = true;
                 redisClient.setEx(username, DEFAULT_EXPIRATION, JSON.stringify({
                   username: username,
-                  saldo: user.saldo,
+                  amount: user.amount,
                   isAdmin: false,
                   isLogged: true,
                   message: "Logged in successfully.",
@@ -48,7 +48,7 @@ router.post("/login", async (req, res) => {
                   .status(200)
                   .json({
                     username: username,
-                    saldo: user.saldo,
+                    amount: user.amount,
                     isAdmin: false,
                     isLogged: true,
                     message: "Logged in successfully.",
@@ -92,7 +92,7 @@ router.post("/logout", (req, res) => {
 
 /* Register new user. */
 router.post("/register", async (req, res) => {
-  const { listing_id, username, email, password } = req.body;
+  const { username, password } = req.body;
 
   const dbConnect = dbo.getDb();
   await dbConnect
@@ -107,12 +107,10 @@ router.post("/register", async (req, res) => {
         const hashedPassword = bcryptjs.hashSync(password, salt);
 
         const playersDocument = {
-          listing_id: listing_id,
           last_modified: new Date(),
           username: username,
-          saldo: 100.0,
+          amount: 100.0,
           usergroup: 0,
-          email: email,
           password: hashedPassword,
         };
         dbConnect

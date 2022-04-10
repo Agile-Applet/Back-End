@@ -1,5 +1,6 @@
-const { dealCards, oneCard, checkCards, removeCards } = require("./utils/roundhelpers");
+const { dealCards, checkCards, removeCards } = require("./utils/roundhelpers");
 const { getRandomInt } = require("./utils/helpers");
+const { playerTurn, setPlayerTurn } = require("./utils/validation");
 
 class Controller {
 
@@ -8,10 +9,25 @@ class Controller {
             this.socket = socketRoom;
 
         this.status = "Start"; // Start, Bet, Turn, River, Show, End
-        this.betround = 0;
-        this.oneCard = "";
+        this.betound = 0;
+        this.randomIndex = 0;
+        this.dealerIndex = 0;
+        this.playerCount = 0;
         this.playerData = [];
         this.tableData = [];
+        this.roles = [' (D)', ' (S)', ' (B)', '', '', '',
+
+            '', ' (D)', ' (S)', ' (B)', '', '',
+
+            '', '', ' (D)', ' (S)', ' (B)', '',
+
+            '', '', '', ' (D)', ' (S)', ' (B)',
+
+            ' (B)', '', '', '', ' (D)', ' (S)',
+
+            ' (S)', ' (B)', '', '', '', ' (D)'
+
+        ];
 
         //setTimeout(() => this.testMethod(), 5000, 1); // Run test method in 5 seconds
     }
@@ -47,27 +63,41 @@ class Controller {
     startGame = (playerCount, data) => {
         this.status = "Start";
         this.playerData = data;
-        let randomIndex = 0;
+        this.playerCount = playerCount;
+
+        let a = 6;
+
+        if (this.playerCount < 3) {
+            this.dealerIndex++;
+        }
 
         this.playerData.forEach(element => {
-            randomIndex = getRandomInt(playerCount);
-            if (!element.playerName.includes('Pelaaja')) {
-                this.playerData[this.playerData.indexOf(element)] = {
-                    playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                    lastBet: 0, hand: dealCards(randomIndex), showHand: false, avatar: element.avatar, handPosition: element.handPosition
-                }
-                playerCount -= 1;
-                removeCards(randomIndex);
-            };
+            this.randomIndex = getRandomInt(a - 1);
+            this.playerData[this.playerData.indexOf(element)] = {
+                playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
+                lastBet: 0, hand: dealCards(this.randomIndex, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: this.roles[this.dealerIndex]
+            }
+            this.playerCount--;
+            this.dealerIndex++;
+            removeCards(this.randomIndex);
         });
-        this.oneCard = oneCard();
+        console.log(this.playerData);
         this.next('Start');
     };
 
     betRound() {
         this.betround++;
-        this.status = 'Bet';
         this.socket.in("Pöytä 1").emit('playerTurn', {});
+        if (this.betround === 1) {
+            this.flopRound();
+        }
+    };
+
+    flopRound() {
+        this.status = 'Flop';
+        this.randomIndex = getRandomInt(this.playerCount);
+        this.tableData.push({ pot: 0.00, cards: dealCards(this.randomIndex, 'dealer'), status: this.status });
+        this.next('Flop');
     };
 
     checkHands(data) {
@@ -84,20 +114,20 @@ class Controller {
         switch (this.status) {
             case 'Start':
                 if (this.room.getPlayerCount() > 1) {
-                    this.tableData.push({ pot: 0.00, cards: [{ card: this.oneCard.value + this.oneCard.suit }] });
-                    this.socket.emit('startGame');
-                    this.socket.emit('updateTableCards', this.tableData);
-                    //this.betRound();
+                    this.status = 'Bet';
+                    this.next('Bet');
                 }
-                // TBD
                 break;
 
             case 'Bet':
                 // TBD
+                this.betRound();
                 break;
 
             case 'Flop':
                 // TBD
+                this.socket.emit('updateTableCards', this.tableData);
+                this.socket.emit('startGame');
                 break;
 
             case 'River':

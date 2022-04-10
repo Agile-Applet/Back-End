@@ -27,7 +27,7 @@ Back-End side of the Casino Platform @ Haaga-Helia Project course 2.
 |       redis.js
 |                          
 +---routes 
-|       money.js #Endpoint to update players balance.
+|       money.js #Endpoint to update players balance
 |       
 +---scripts #Autodeploy on EC2 instance at AWS
 |       application_start.sh

@@ -1,10 +1,10 @@
 const { Card } = require("../Card");
 const { Round } = require("../Round");
-const { getRandomInt } = require("../utils/helpers");
 const Hand = require('pokersolver').Hand;
 
 let startDeck = [];
 let hands = [];
+let lastIndex = 0;
 
 /* Create a new deck */
 const createDeck = () => {
@@ -42,28 +42,30 @@ const shuffle = (deck) => {
             hand.push(startDeck[i]);
             i++;
         }
+        while (5 > hand.length) {
+            hand.push(startDeck[i]);
+            i++;
+        }
         hands.push(hand);
     }
+    console.log(hands);
 };
 
 /* Remove taken cards from the deck */
 const removeCards = (removedIndex) => {
-    startDeck.splice(startDeck.indexOf(hands[removedIndex][0]), 2);
     hands.splice(removedIndex, 1);
-
-    console.log(startDeck);
-    console.log(hands);
-};
-
-/* Pick one card from the deck */
-const oneCard = () => {
-    const oneCard = startDeck[getRandomInt(51)];
-    return oneCard;
 };
 
 /* Deal starting cards */
-const dealCards = (randomIndex) => {
-    return [{ card: hands[randomIndex][0].value + hands[randomIndex][0].suit }, { card: hands[randomIndex][1].value + hands[randomIndex][1].suit }];
+const dealCards = (randomIndex, status) => {
+    lastIndex = hands.length - 1;
+    if (status === 'player') {
+        return [{ card: hands[randomIndex][0].value + hands[randomIndex][0].suit }, { card: hands[randomIndex][1].value + hands[randomIndex][1].suit }];
+    } else {
+        return [{ card: hands[lastIndex][0].value + hands[lastIndex][0].suit }, { card: hands[lastIndex][1].value + hands[lastIndex][1].suit },
+        { card: hands[lastIndex][2].value + hands[lastIndex][2].suit }, { card: hands[lastIndex][3].value + hands[lastIndex][3].suit }, { card: hands[lastIndex][4].value + hands[lastIndex][4].suit }];
+    }
+    console.log(hands);
 };
 
 /* Solve the winning hand */
@@ -94,4 +96,4 @@ const checkCards = (hands) => {
     console.log(winner);
 };
 
-module.exports = { createDeck, shuffle, removeCards, oneCard, dealCards, checkCards }
+module.exports = { createDeck, shuffle, removeCards, dealCards, checkCards }
