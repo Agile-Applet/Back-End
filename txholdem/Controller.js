@@ -7,27 +7,16 @@ class Controller {
         this.room = room,
             this.socket = socketRoom;
 
-        this.status = "Start"; // Pause, Start, Bet, Turn, River, Show, End
+        this.status = 'Start'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
         this.turn = 0;
         this.smallBlindTurn = -1;
         this.bigBlindTurn = 0;
         this.playerData = [];
         this.tableData = [];
-
-        //setTimeout(() => this.testMethod(), 5000, 1); // Run test method in 5 seconds
     }
 
-    /* Testimetodi, jossa controlleri lähettää koko pöydälle dataa */
-    /*
-        testMethod = () => {
-            console.log("Test method executed.");
-            this.socket.in("Pöytä 1").emit('userError', { action: "test_message", status: "failed", message: "Testimetodin viesti pöytäryhmälle onnistui." });
-            setTimeout(() => console.log(this.room.getPlayerData()), 5000, 1);
-        }
-    */
-    /* 
-        
+    /*  
         PANOSTUSKIERROS: 
             - Ennen ja jälkeen jokaisen kortin/korttien paljastamista pelaajat panostavat vuorollaan.
             - Pysyäkseen mukana kädessä ja nähdäkseen seuraavan kortin jokaisen pelaajan täytyy laittaa sama määrä merkkejä pottiin kuin muut ovat laittaneet
@@ -41,11 +30,10 @@ class Controller {
             3.1 Panostuskierros
             4. Jakaja jakaa viidenen kortin ("RIVER")
             3.2 Panostuskierros
-            5. Näyttö & voittava käsi/tarkastukset ("SHOW")
+            5. Näyttö & voittava käsi/tarkastukset ("CHECK")
     */
 
-    /* Nää on vasta hahmottelun tasolla. */
-
+    /* Start a new game */
     startGame = (data) => {
         this.status = "Start";
         this.playerData = data;
@@ -70,9 +58,16 @@ class Controller {
                     lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (B)'
                 }
             } else {
-                this.playerData[this.playerData.indexOf(element)] = {
-                    playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                    lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
+                if (element.playerName === 'Free') {
+                    this.playerData[this.playerData.indexOf(element)] = {
+                        playerId: element.playerId, playerName: element.playerName, seatStatus: 2, money: element.money,
+                        lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
+                    }
+                } else {
+                    this.playerData[this.playerData.indexOf(element)] = {
+                        playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
+                        lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
+                    }
                 }
             }
             removeCards(0);
@@ -80,44 +75,76 @@ class Controller {
         this.next('Start');
     };
 
+    /* Return current player turn */
     playerTurn() {
         return parseFloat(this.turn);
     };
 
+    /* Set current player turn */
     setPlayerTurn(data) {
         this.turn += data;
     };
 
+    /* Return current game status */
     gameStatus() {
         return this.status;
     };
 
+    /* Set current game status */
     setGameStatus(data) {
         this.status = data;
     };
 
+    /* Handle Bet Round */
     betRound() {
         this.betround++;
-        this.socket.in("Pöytä 1").emit('playerTurn', {});
+        this.socket.in("Table 1").emit('playerTurn', {});
+        /* Kun Bet ohi
+        this.status = 'Flop';
         this.flopRound();
+        */
     };
 
+    /* Handle Flop Round */
     flopRound() {
-        this.status = 'Flop';
         this.tableData.push({ pot: 0.00, cards: dealCards(0, 'dealer'), status: this.status });
         this.next('Flop');
     };
 
+    /* Handle River Round */
+    riverRound() {
+        // TBD
+        /* Kun River ohi
+       this.status = 'Check';
+       this.next('Check');
+       */
+    };
+
+    /* Determine the winner */
     checkHands(data) {
         data.forEach(element => {
             if (element[0]) {
                 element.push({ card: this.tableData[0].cards[0].card });
             }
         });
-        checkCards(data);
-        this.next('End');
+        /*
+        let winner = checkCards(data);
+        this.socket.emit('userError', { action: "end_game", status: "success", message: "${winner} voitti tms." });
+        */
+        /* Kun Check ohi
+       this.status = 'Pause';
+       this.next('Pause');
+       */
     };
 
+    pauseGame = () => {
+        // TBD
+        setTimeout(() => {
+            this.socket.emit('userError', { action: 'pause_game', status: 'success', message: "Puolen minuutin tauko." });
+        }, 3000);
+    }
+
+    /* Game Flow */
     next = () => {
         switch (this.status) {
             case 'Start':
@@ -133,38 +160,32 @@ class Controller {
                 break;
 
             case 'Flop':
-                // TBD
-                console.log(this.tableData);
                 this.socket.emit('updateTableCards', this.tableData);
                 this.socket.emit('startGame', true);
+                this.status = 'River';
+                this.next('River');
                 break;
 
             case 'River':
                 // TBD
+                this.riverRound();
                 break;
 
-            case 'Show':
+            //Aka Check/End/Show
+            case 'Check':
+                this.checkHands(this.playerData);
                 // TBD
                 break;
 
-            case 'End':
-                this.endGame();
+            case 'Pause':
                 // TBD
+                this.pauseGame();
                 break;
 
             default:
                 // TBD
                 break;
         }
-    }
-
-    endGame = () => {
-        this.status = "End";
-        this.betround = 0;
-        /*
-        this.socket.in("Pöytä 1").emit('TAPAHTUMAN_NIMI');
-        */
-        this.socket.emit('userError', { action: "check_hand", status: "success", message: "Joku voitti" });
     }
 }
 
