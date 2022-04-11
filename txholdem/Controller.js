@@ -7,9 +7,9 @@ class Controller {
         this.socket = socketRoom;
 
         this.deck = new Deck();
-        this.status = 'Start'; // Pause, Start, Bet, Turn, River, Show, End
+        this.status = 'Start'; // Pause, Start, End
         this.playerStart = 0;
-        this.players = 0;
+        this.activePlayers = 0;
         this.betround = 0;
         this.turn = 0;
         this.playerData = [];
@@ -81,11 +81,11 @@ class Controller {
     };
 
     addPlayer() {
-        this.players++;
+        this.activePlayers++;
     }
 
     removePlayer() {
-        this.players--;
+        this.activePlayers--;
     }
 
     /* Handle Bet Round */
@@ -117,6 +117,7 @@ class Controller {
 
     pauseGame = () => {
         // TBD
+        console.log('pause');
         setTimeout(() => {
             this.socket.emit('userError', { action: 'pause_game', status: 'success', message: "Puolen minuutin tauko." });
         }, 3000);
@@ -147,7 +148,6 @@ class Controller {
             case 1: // Flop
                 this.tableData.push({ pot: 0.00, cards: this.deck.dealCards(3), status: this.status });
                 this.socket.emit('updateTableCards', this.tableData);
-                this.socket.emit('syncGame', true);
                 this.betRound();
                 break;
             case 2: // Turn
@@ -155,7 +155,6 @@ class Controller {
                 this.tableData[0].cards.push(this.deck.getCard());
                 console.log(this.tableData[0])
                 this.socket.emit('updateTableCards', this.tableData);
-                this.socket.emit('syncGame', true);
                 this.betRound();
                 break;
             case 4: // End
@@ -191,7 +190,12 @@ class Controller {
             if (this.playerData[index].status != 'fold' || startRound) {
                 this.setPlayerTurn(index);
                 if(this.playerData[index].status === 'check' || this.playerData[index].status === 'bet'){
-                        this.nextRound();
+                        if(this.activePlayers === 1) {
+                            console.log(this.playerData[index].playerName + ' is the winner');
+                        }else {
+                            this.nextRound();
+                        }
+
                 }
                 if (startRound){
                     this.assistBlinds(index, ' (B)', this.playerData);

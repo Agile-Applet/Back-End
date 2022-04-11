@@ -2,7 +2,6 @@
 const { getRandomInt } = require("./utils/helpers");
 const { addUser, updateUser, getUser, deleteUser } = require("../user/users");
 const { Controller } = require("./Controller");
-const { createDeck } = require("./utils/roundhelpers");
 const { depositGameFunds } = require("../txholdem/utils/depositGameFunds");
 
 const avatars = [
@@ -54,15 +53,15 @@ class Room {
   /* Listen Specific Room */
   listenRoom() {
     this.room.on('connection', (socket) => {
-      console.log("[Holdem-Socket] User connected : " + socket.id);
+      console.log("[Connect] User connected : " + socket.id);
       socket.on('disconnect', () => {
-        console.log("[Holdem-Socket] User disconnected");
+        console.log("[Disconnect] User disconnected");
         const usr = getUser(socket.id);
         const user = deleteUser(socket.id);
         if (user) {
           if (this.playerData[usr.seat].seatStatus != 0) {
             this.players--;
-            console.log("[Holdem-Socket] Current players: " + this.players + " of " + this.maxPlayers);
+            console.log("[Disconnect] Current players: " + this.players + " of " + this.maxPlayers);
           }
           this.playerData[usr.seat] = { ...this.playerData[usr.seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
           this.room.in(user.room).emit('updatePlayer', this.playerData);
@@ -91,7 +90,6 @@ class Room {
         if (this.players <= this.maxPlayers) {
           let seat = data.seatId;
           if (this.playerData[seat].seatStatus === 0) {
-            console.log("[Holdem-Socket]");
             const user = getUser(socket.id);
             if (user.seat && user.seat != 0) {
               return socket.emit('userError', { action: 'join_seat', status: 'failed', message: "Olet jo toisella pöytäpaikalla." });
@@ -100,18 +98,17 @@ class Room {
             updateUser(user.name, seat, user.room);
             this.playerData[seat] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)], role: '' };
             if (this.players === 1) {
-              createDeck();
             } else if (this.players === 2) {
               this.controller.startGame(this.playerData);
             }
             this.room.in(user.room).emit('updatePlayer', this.playerData);
-            console.log("[Holdem-Socket] Current players: " + this.players + " of " + this.maxPlayers);
+            console.log("[Join] Current players: " + this.players + " of " + this.maxPlayers);
           } else {
-            console.log("[Holdem-Socket] Seat is already taken.");
+            console.log("[Join] Seat is already taken.");
             return socket.emit('userError', { action: 'join_seat', status: 'failed', message: "Valitsemasi pöytäpaikka on jo varattu toiselle pelaajalle." });
           }
         } else {
-          console.log("[Holdem-Socket] Player is not authorized to join right now.");
+          console.log("[Join] Player is not authorized to join right now.");
           return socket.emit('userError', { action: 'join_seat', status: 'failed', message: "Et voi liittyä tällä hetkellä." });
         }
       });
@@ -124,7 +121,7 @@ class Room {
           this.playerData[seat] = { ...this.playerData[seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
           updateUser(user.name, 0, user.room);
           this.players--;
-          console.log("[Holdem-Socket] Current players: " + this.players + " of " + this.maxPlayers);
+          console.log("[Leave] Current players: " + this.players + " of " + this.maxPlayers);
           this.room.in(user.room).emit('updatePlayer', this.playerData);
         } else {
           console.log("[Leave] Player is not authorized to execute this action right now.");
