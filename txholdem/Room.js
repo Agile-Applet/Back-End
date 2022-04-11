@@ -120,7 +120,7 @@ class Room {
       socket.on('leave_seat', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        if (this.controller.gameStatus === 'Pause') {
+        if (true) {
           this.playerData[seat] = { ...this.playerData[seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
           updateUser(user.name, 0, user.room);
           this.players--;
@@ -144,7 +144,7 @@ class Room {
       socket.on('fold_hand', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        if (seat == this.controller.playerTurn()) {
+        if (seat == this.controller.getPlayerTurn()) {
           this.playerData[seat] = { ...this.playerData[user.seat], hand: [], showHand: false, status : 'fold' };
           this.controller.removePlayer();
           this.controller.nextTurn(this.controller.turn);
@@ -158,7 +158,7 @@ class Room {
       socket.on('check_hand', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        if (seat == this.controller.playerTurn()) {
+        if (seat == this.controller.getPlayerTurn()) {
           this.playerData[user.seat] = { ...this.playerData[user.seat], showHand: false, status : 'check' };
           this.controller.nextTurn(this.controller.turn);
         } else {
@@ -170,7 +170,7 @@ class Room {
       socket.on('bet_hand', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
-        if (seat == this.controller.playerTurn()) {
+        if (seat == this.controller.getPlayerTurn()) {
           if(typeof data.betAmount != 'undefined'){  
             const bet = this.playerData[user.seat].lastBet + data.betAmount;
             this.playerData.forEach((element, index) => {

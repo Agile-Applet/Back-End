@@ -7,7 +7,7 @@ class Controller {
         this.socket = socketRoom;
 
         this.deck = new Deck();
-        this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
+        this.status = 'Start'; // Pause, Start, Bet, Turn, River, Show, End
         this.playerStart = 0;
         this.players = 0;
         this.betround = 0;
@@ -91,7 +91,10 @@ class Controller {
     /* Handle Bet Round */
     betRound() {
         this.betround++;
+        this.resetStatusOnAll();
         this.socket.in("Table 1").emit('playerTurn', {});
+        this.socket.emit('syncGame', true);
+
     };
 
 
@@ -159,6 +162,13 @@ class Controller {
                 this.checkHands(this.playerData);
                 break;
         }
+    }
+
+    resetStatusOnAll() {
+        this.playerData.forEach((element, index) => {
+            if(element.status != 'fold')
+            this.playerData[index] = { ...this.playerData[index], status : 'wait' };
+        })
     }
 
     assistBlinds(index, role) {
