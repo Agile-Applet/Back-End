@@ -4,16 +4,17 @@ class Controller {
 
     constructor(room, socketRoom) {
         this.room = room,
-            this.socket = socketRoom;
+        this.socket = socketRoom;
 
         this.status = 'Start'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
         this.deck = new Deck();
+        this.playerStart = 0;
         this.turn = 0;
-        this.smallBlindTurn = -1;
-        this.bigBlindTurn = 0;
         this.playerData = [];
         this.tableData = [];
+        this.roles = Array(6).fill('');
+
     }
 
     /*  
@@ -37,38 +38,20 @@ class Controller {
     startGame = (data) => {
         this.status = "Start";
         this.playerData = data;
-        this.smallBlindTurn++;
-        this.bigBlindTurn++;
+        this.roles.fill('');
         this.deck.resetDeck();
+        this.playerStart = this.nextTurn(this.playerStart, true);
 
-        if (this.smallBlindTurn === this.room.getPlayerCount()) {
-            this.smallBlindTurn = 0;
-        } else if (this.bigBlindTurn === this.room.getPlayerCount()) {
-            this.bigBlindTurn = 0;
-        }
-
-        this.playerData.forEach(element => {
-            if (element.playerId === this.smallBlindTurn) {
+        this.playerData.forEach((element, index) => {
+            if (element.playerName === 'Free') {
+                this.playerData[this.playerData.indexOf(element)] = {
+                    playerId: element.playerId, playerName: element.playerName, seatStatus: 2, money: element.money,
+                    lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: '', status: 'fold' 
+                }
+            }else{
                 this.playerData[this.playerData.indexOf(element)] = {
                     playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                    lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (S)'
-                }
-            } else if (element.playerId === this.bigBlindTurn) {
-                this.playerData[this.playerData.indexOf(element)] = {
-                    playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                    lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (B)'
-                }
-            } else {
-                if (element.playerName === 'Free') {
-                    this.playerData[this.playerData.indexOf(element)] = {
-                        playerId: element.playerId, playerName: element.playerName, seatStatus: 2, money: element.money,
-                        lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
-                    }
-                } else {
-                    this.playerData[this.playerData.indexOf(element)] = {
-                        playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                        lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
-                    }
+                    lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: this.roles[index], status: 'wait'
                 }
             }
         });
@@ -185,6 +168,37 @@ class Controller {
             default:
                 // TBD
                 break;
+        }
+    }
+
+    assistBlinds(index, role) {
+            index--;
+            if(index < 0) index = this.playerData.length -1;
+        if(typeof this.playerData[index] !== 'undefined' && this.playerData[index].seatStatus === 1) {
+            this.roles[index] = role;
+            if (role === ' (B)') {
+                this.assistBlinds(index, ' (S)')
+            }
+        }else{
+            this.assistBlinds(index, role);
+        }    
+}
+
+    nextTurn(index, startRound = false) {
+        index++;
+        if (index >= this.playerData.length) index = 0;
+        if(typeof this.playerData[index] !== 'undefined' && this.playerData[index].seatStatus === 1 ) {
+            if (this.playerData[index].status != 'fold' || startRound) {
+                this.setPlayerTurn(index);
+                if (startRound){
+                    this.assistBlinds(index, ' (B)', this.playerData);
+                }
+                return index;
+            }else {
+                this.nextTurn(index, startRound);
+            }
+        }else{
+            this.nextTurn(index, startRound)
         }
     }
 }
