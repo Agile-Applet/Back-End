@@ -11,6 +11,7 @@ class Controller {
         this.betround = 0;
         this.turn = 0;
         this.activePlayers = 0;
+        this.totalBet = 50;
         this.smallBlindTurn = -1;
         this.bigBlindTurn = 0;
         this.playerData = [];
@@ -39,8 +40,12 @@ class Controller {
         this.status = "Start";
         this.playerData = data;
         this.tableData = [];
+        this.totalBet = 50;
         this.smallBlindTurn++;
         this.bigBlindTurn++;
+        let role = '';
+        let seatStatus = 0;
+        let lastBet = 0;
 
         if (this.smallBlindTurn === this.room.getPlayerCount()) {
             this.smallBlindTurn = 0;
@@ -49,35 +54,65 @@ class Controller {
         }
 
         this.playerData.forEach(element => {
-            if (element.playerId === this.smallBlindTurn) {
-                this.playerData[this.playerData.indexOf(element)] = {
-                    playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                    lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (S)'
-                }
-            } else if (element.playerId === this.bigBlindTurn) {
-                this.playerData[this.playerData.indexOf(element)] = {
-                    playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                    lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (B)'
-                }
+            if (element.playerName === 'Free') {
+                seatStatus = 2;
             } else {
-                if (element.playerName === 'Free') {
-                    this.playerData[this.playerData.indexOf(element)] = {
-                        playerId: element.playerId, playerName: element.playerName, seatStatus: 2, money: element.money,
-                        lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
-                    }
-                    this.activePlayers--;
-                } else {
-                    this.playerData[this.playerData.indexOf(element)] = {
-                        playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                        lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
-                    }
-                }
+                seatStatus = element.seatStatus;
+                this.activePlayers++;
             }
-            this.activePlayers++;
+            if (element.playerId === this.smallBlindTurn) {
+                role = ' (S)';
+                lastBet = 50;
+            } else if (element.playerId === this.bigBlindTurn) {
+                role = ' (B)';
+                lastBet = 100;
+            } else {
+                role = '';
+                lastBet = 0;
+            }
+            this.playerData[this.playerData.indexOf(element)] = {
+                playerId: element.playerId, playerName: element.playerName, seatStatus: seatStatus, money: element.money - lastBet,
+                lastBet: lastBet, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: role
+            }
+            this.turn = this.playerData.indexOf(element);
             removeCards(0);
         });
-        console.log('activePlayers: ' + this.activePlayers);
+        if (this.activePlayers < 3) {
+            this.turn = 0;
+        }
         this.next('Start');
+    };
+
+    /* Handle Betting */
+    checkBet(bet, index) {
+        console.log('index:  ' + index);
+        if (index == 0) {
+            index++;
+        } else {
+            index--;
+        }
+        console.log('index:  ' + index);
+        console.log('bet:  ' + bet);
+        console.log('lastBet:  ' + this.playerData[index].lastBet);
+        /* Check that current player bets enough */
+        if (bet == this.playerData[index].lastBet) {
+            this.setPlayerTurn(1);
+            this.betround++;
+            console.log('this.betround:  ' + this.betround);
+            console.log(this.betround == this.activePlayers - 1);
+            if (this.betround == this.activePlayers - 1) {
+                this.status = 'Flop';
+                this.betround = 0;
+                this.flopRound();
+            }
+            return true;
+        } else if (bet > this.playerData[index].lastBet) {
+            this.setPlayerTurn(1);
+            this.betround = 0;
+            return true;
+        } else {
+            return false;
+        }
     };
 
     /* Return current player turn */
@@ -88,6 +123,9 @@ class Controller {
     /* Set current player turn */
     setPlayerTurn(data) {
         this.turn += data;
+        if (this.turn == this.activePlayers) {
+            this.turn = 0;
+        }
     };
 
     /* Return current game status */
@@ -102,8 +140,6 @@ class Controller {
 
     /* Handle Bet Round */
     betRound() {
-        this.betround++;
-        this.socket.in("Table 1").emit('playerTurn', {});
         this.socket.emit('syncGame', true);
         /* Kun Bet ohi
         this.status = 'Flop';
@@ -113,7 +149,10 @@ class Controller {
 
     /* Handle Flop Round */
     flopRound() {
-        this.tableData.push({ pot: 0.00, cards: dealCards(0, 'dealer'), status: this.status });
+        this.playerData.forEach(element => {
+            this.totalBet += element.lastBet;
+        });
+        this.tableData.push({ pot: this.totalBet, cards: dealCards(0, 'dealer'), status: this.status });
         this.next('Flop');
     };
 
@@ -177,8 +216,8 @@ class Controller {
             case 'Flop':
                 this.socket.emit('updateTableCards', this.tableData);
                 //this.socket.emit('syncGame', true);
-                this.status = 'River';
-                this.next('River');
+                //this.status = 'River';
+                //this.next('River');
                 break;
 
             case 'Turn':

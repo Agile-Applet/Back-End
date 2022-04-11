@@ -169,8 +169,15 @@ class Room {
         let seat = user.seat;
         if (seat == this.controller.getPlayerTurn()) {
           const bet = this.playerData[user.seat].lastBet + data.betAmount;
-          this.playerData[user.seat] = { ...this.playerData[user.seat], lastBet: bet, showHand: false };
-          this.room.in(user.room).emit('updatePlayer', this.playerData);
+          if (this.playerData[user.seat].money >= data.betAmount) {
+            if (this.controller.checkBet(bet, parseFloat(seat))) {
+              this.playerData[user.seat] = { ...this.playerData[user.seat], money: this.playerData[user.seat].money - data.betAmount, lastBet: bet, showHand: false };
+              this.room.in(user.room).emit('updatePlayer', this.playerData);
+            }
+          } else {
+            console.log("[Bet] Wrong amount.");
+            return socket.emit('userError', { action: 'bet_hand', status: 'failed', message: "Tarkista panostus." });
+          }
         } else {
           console.log("[Bet] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: 'bet_hand', status: 'failed', message: "Et voi tällä hetkellä korottaa panosta." });
