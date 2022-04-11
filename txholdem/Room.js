@@ -68,7 +68,7 @@ class Room {
           this.room.in(user.room).emit('updatePlayer', this.playerData);
           if (this.players === 0) {
             this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
-            this.room.in(user.room).emit('startGame', false);
+            this.room.in(user.room).emit('syncGame', false);
             this.playerData.forEach(player => {
               this.playerData[this.playerData.indexOf(player)] = { ...this.playerData[this.playerData.indexOf(player)], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
             });
@@ -132,7 +132,7 @@ class Room {
         }
         if (this.players === 0) {
           this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
-          this.room.in(user.room).emit('startGame', false);
+          this.room.in(user.room).emit('syncGame', false);
           this.playerData.forEach(player => {
             this.playerData[this.playerData.indexOf(player)] = { ...this.playerData[this.playerData.indexOf(player)], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
           });

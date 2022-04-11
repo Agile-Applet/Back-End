@@ -61,7 +61,7 @@ class Controller {
     };
 
     /* Return current player turn */
-    playerTurn() {
+    getPlayerTurn() {
         return parseFloat(this.turn);
     };
 
@@ -71,7 +71,7 @@ class Controller {
     };
 
     /* Return current game status */
-    gameStatus() {
+    getGameStatus() {
         return this.status;
     };
 
@@ -144,7 +144,7 @@ class Controller {
             case 1: // Flop
                 this.tableData.push({ pot: 0.00, cards: this.deck.dealCards(3), status: this.status });
                 this.socket.emit('updateTableCards', this.tableData);
-                this.socket.emit('startGame', true);
+                this.socket.emit('syncGame', true);
                 this.betRound();
                 break;
             case 2: // Turn
@@ -152,7 +152,7 @@ class Controller {
                 this.tableData[0].cards.push(this.deck.getCard());
                 console.log(this.tableData[0])
                 this.socket.emit('updateTableCards', this.tableData);
-                this.socket.emit('startGame', true);
+                this.socket.emit('syncGame', true);
                 this.betRound();
                 break;
             case 4: // End
