@@ -1,5 +1,4 @@
-const { dealCards, checkCards, removeCards } = require("./utils/roundhelpers");
-const { getRandomInt } = require("./utils/helpers");
+const { Deck } = require("./Deck");
 
 class Controller {
 
@@ -9,6 +8,7 @@ class Controller {
 
         this.status = 'Start'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
+        this.deck = new Deck();
         this.turn = 0;
         this.smallBlindTurn = -1;
         this.bigBlindTurn = 0;
@@ -39,6 +39,7 @@ class Controller {
         this.playerData = data;
         this.smallBlindTurn++;
         this.bigBlindTurn++;
+        this.deck.resetDeck();
 
         if (this.smallBlindTurn === this.room.getPlayerCount()) {
             this.smallBlindTurn = 0;
@@ -50,27 +51,26 @@ class Controller {
             if (element.playerId === this.smallBlindTurn) {
                 this.playerData[this.playerData.indexOf(element)] = {
                     playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                    lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (S)'
+                    lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (S)'
                 }
             } else if (element.playerId === this.bigBlindTurn) {
                 this.playerData[this.playerData.indexOf(element)] = {
                     playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                    lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (B)'
+                    lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ' (B)'
                 }
             } else {
                 if (element.playerName === 'Free') {
                     this.playerData[this.playerData.indexOf(element)] = {
                         playerId: element.playerId, playerName: element.playerName, seatStatus: 2, money: element.money,
-                        lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
+                        lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
                     }
                 } else {
                     this.playerData[this.playerData.indexOf(element)] = {
                         playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
-                        lastBet: 0, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
+                        lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: ''
                     }
                 }
             }
-            removeCards(0);
         });
         this.next('Start');
     };
@@ -107,7 +107,7 @@ class Controller {
 
     /* Handle Flop Round */
     flopRound() {
-        this.tableData.push({ pot: 0.00, cards: dealCards(0, 'dealer'), status: this.status });
+        this.tableData.push({ pot: 0.00, cards: this.deck.dealCards(5), status: this.status });
         this.next('Flop');
     };
 
