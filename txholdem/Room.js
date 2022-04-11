@@ -61,15 +61,16 @@ class Room {
         if (user) {
           if (this.playerData[usr.seat].seatStatus != 0) {
             this.players--;
-            console.log("[Disconnect] Current players: " + this.players + " of " + this.maxPlayers);
+            console.log(user);
+              console.log("[Disconnect] Current players: " + this.players + " of " + this.maxPlayers);
           }
-          this.playerData[usr.seat] = { ...this.playerData[usr.seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
+          this.playerData[usr.seat] = { ...this.playerData[usr.seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '', status: 'fold' };
           this.room.in(user.room).emit('updatePlayer', this.playerData);
           if (this.players === 0) {
             this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
             this.room.in(user.room).emit('syncGame', false);
             this.playerData.forEach(player => {
-              this.playerData[this.playerData.indexOf(player)] = { ...this.playerData[this.playerData.indexOf(player)], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
+              this.playerData[this.playerData.indexOf(player)] = { ...this.playerData[this.playerData.indexOf(player)], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '', status: 'fold' };
             });
             this.room.in(user.room).emit('updatePlayer', this.playerData);
           }
@@ -96,7 +97,7 @@ class Room {
             }
             this.players++;
             updateUser(user.name, seat, user.room);
-            this.playerData[seat] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)], role: '' };
+            this.playerData[seat] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)], role: '', status : 'fold'};
             if (this.players === 1) {
             } else if (this.players === 2) {
               this.controller.startGame(this.playerData);
@@ -118,9 +119,16 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (true) {
+          
+          if(this.playerData[seat].status != 'fold') {
+            this.controller.removePlayer();
+          }
+          if (seat == this.controller.getPlayerTurn()) this.controller.nextTurn();
+          
           this.playerData[seat] = { ...this.playerData[seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
           updateUser(user.name, 0, user.room);
           this.players--;
+          
           console.log("[Leave] Current players: " + this.players + " of " + this.maxPlayers);
           this.room.in(user.room).emit('updatePlayer', this.playerData);
         } else {

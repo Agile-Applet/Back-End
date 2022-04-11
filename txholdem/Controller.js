@@ -86,6 +86,7 @@ class Controller {
 
     removePlayer() {
         this.activePlayers--;
+        if (this.activePlayers === 1) console.log('we got a winner')
     }
 
     /* Handle Bet Round */
