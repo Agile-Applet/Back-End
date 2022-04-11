@@ -6,10 +6,11 @@ class Controller {
         this.room = room,
         this.socket = socketRoom;
 
-        this.status = 'Start'; // Pause, Start, Bet, Turn, River, Show, End
-        this.betround = 0;
         this.deck = new Deck();
+        this.status = 'Start'; // Pause, Start, Bet, Turn, River, Show, End
         this.playerStart = 0;
+        this.players = 0;
+        this.betround = 0;
         this.turn = 0;
         this.playerData = [];
         this.tableData = [];
@@ -49,6 +50,7 @@ class Controller {
                     lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: '', status: 'fold' 
                 }
             }else{
+                this.addPlayer();
                 this.playerData[this.playerData.indexOf(element)] = {
                     playerId: element.playerId, playerName: element.playerName, seatStatus: element.seatStatus, money: element.money,
                     lastBet: 0, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: this.roles[index], status: 'wait'
@@ -65,7 +67,7 @@ class Controller {
 
     /* Set current player turn */
     setPlayerTurn(data) {
-        this.turn += data;
+        this.turn = data;
     };
 
     /* Return current game status */
@@ -77,6 +79,14 @@ class Controller {
     setGameStatus(data) {
         this.status = data;
     };
+
+    addPlayer() {
+        this.players++;
+    }
+
+    removePlayer() {
+        this.players--;
+    }
 
     /* Handle Bet Round */
     betRound() {

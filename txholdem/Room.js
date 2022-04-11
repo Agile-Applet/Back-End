@@ -30,12 +30,12 @@ class Room {
 
     /* Player Array */
     this.playerData = [
-      { playerId: 0, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '', role: '' },
-      { playerId: 1, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '' },
-      { playerId: 2, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '' },
-      { playerId: 3, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '' },
-      { playerId: 4, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '', role: '' },
-      { playerId: 5, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '', role: '' }
+      { playerId: 0, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '', role: '', status: 'fold' },
+      { playerId: 1, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '', status: 'fold' },
+      { playerId: 2, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '', status : 'fold' },
+      { playerId: 3, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '', status: 'fold'  },
+      { playerId: 4, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '', role: '', status: 'fold'  },
+      { playerId: 5, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '', role: '' , status: 'fold' }
     ];
 
     /* Listening room, controller */
@@ -145,7 +145,9 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.playerTurn()) {
-          this.playerData[seat] = { ...this.playerData[user.seat], hand: [], showHand: false };
+          this.playerData[seat] = { ...this.playerData[user.seat], hand: [], showHand: false, status : 'fold' };
+          this.controller.removePlayer();
+          this.controller.nextTurn(this.controller.turn);
           this.room.in(user.room).emit('updatePlayer', this.playerData);
         } else {
           console.log("[Fold] Player is not authorized to execute this action right now.");
@@ -157,7 +159,8 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.playerTurn()) {
-          this.controller.playerTurn(1);
+          this.playerData[user.seat] = { ...this.playerData[user.seat], lastBet: bet, showHand: false, status : 'check' };
+          this.controller.nextTurn(this.controller.turn);
         } else {
           console.log("[Fold] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: 'check', status: 'failed', message: "Et voi tällä hetkellä ohittaa vuoroasi." });
@@ -168,9 +171,20 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.playerTurn()) {
-          const bet = this.playerData[user.seat].lastBet + data.betAmount;
-          this.playerData[user.seat] = { ...this.playerData[user.seat], lastBet: bet, showHand: false };
-          this.room.in(user.room).emit('updatePlayer', this.playerData);
+          if(data.betAmount){  
+            const bet = this.playerData[user.seat].lastBet + data.betAmount;
+            this.playerData.forEach((element, index) => {
+              if(index === user.seat) { 
+               this.playerData[user.seat] = { ...this.playerData[user.seat], lastBet: bet, showHand: false, status : 'bet' };
+             }else if (element.status != 'fold') {
+               this.playerData[user.seat] = { ...this.playerData[user.seat], lastBet: bet, showHand: false, status : 'wait' };
+             }
+           })
+           this.controller.nextTurn(this.controller.turn);
+           this.room.in(user.room).emit('updatePlayer', this.playerData);
+          }else{
+            return socket.emit('userError', { action: 'bet_hand', status: 'failed', message: "Syötä panostus." });
+          }
         } else {
           console.log("[Bet] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: 'bet_hand', status: 'failed', message: "Et voi tällä hetkellä korottaa panosta." });
