@@ -159,7 +159,7 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.playerTurn()) {
-          this.playerData[user.seat] = { ...this.playerData[user.seat], lastBet: bet, showHand: false, status : 'check' };
+          this.playerData[user.seat] = { ...this.playerData[user.seat], showHand: false, status : 'check' };
           this.controller.nextTurn(this.controller.turn);
         } else {
           console.log("[Fold] Player is not authorized to execute this action right now.");
@@ -171,7 +171,7 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.playerTurn()) {
-          if(data.betAmount){  
+          if(typeof data.betAmount != 'undefined'){  
             const bet = this.playerData[user.seat].lastBet + data.betAmount;
             this.playerData.forEach((element, index) => {
               if(index === user.seat) { 

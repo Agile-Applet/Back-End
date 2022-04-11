@@ -7,7 +7,7 @@ class Controller {
         this.socket = socketRoom;
 
         this.deck = new Deck();
-        this.status = 'Start'; // Pause, Start, Bet, Turn, River, Show, End
+        this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.playerStart = 0;
         this.players = 0;
         this.betround = 0;
@@ -92,26 +92,8 @@ class Controller {
     betRound() {
         this.betround++;
         this.socket.in("Table 1").emit('playerTurn', {});
-        /* Kun Bet ohi
-        this.status = 'Flop';
-        this.flopRound();
-        */
     };
 
-    /* Handle Flop Round */
-    flopRound() {
-        this.tableData.push({ pot: 0.00, cards: this.deck.dealCards(5), status: this.status });
-        this.next('Flop');
-    };
-
-    /* Handle River Round */
-    riverRound() {
-        // TBD
-        /* Kun River ohi
-       this.status = 'Check';
-       this.next('Check');
-       */
-    };
 
     /* Determine the winner */
     checkHands(data) {
@@ -142,32 +124,8 @@ class Controller {
         switch (this.status) {
             case 'Start':
                 if (this.room.getPlayerCount() > 1) {
-                    this.status = 'Bet';
-                    this.next('Bet');
+                    this.betRound();
                 }
-                break;
-
-            case 'Bet':
-                // TBD
-                this.betRound();
-                break;
-
-            case 'Flop':
-                this.socket.emit('updateTableCards', this.tableData);
-                this.socket.emit('startGame', true);
-                this.status = 'River';
-                this.next('River');
-                break;
-
-            case 'River':
-                // TBD
-                this.riverRound();
-                break;
-
-            //Aka Check/End/Show
-            case 'Check':
-                this.checkHands(this.playerData);
-                // TBD
                 break;
 
             case 'Pause':
@@ -177,6 +135,28 @@ class Controller {
 
             default:
                 // TBD
+                break;
+        }
+    }
+
+    nextRound() {
+        switch(this.betround){
+            case 1: // Flop
+                this.tableData.push({ pot: 0.00, cards: this.deck.dealCards(3), status: this.status });
+                this.socket.emit('updateTableCards', this.tableData);
+                this.socket.emit('startGame', true);
+                this.betRound();
+                break;
+            case 2: // Turn
+            case 3: // River
+                this.tableData[0].cards.push(this.deck.getCard());
+                console.log(this.tableData[0])
+                this.socket.emit('updateTableCards', this.tableData);
+                this.socket.emit('startGame', true);
+                this.betRound();
+                break;
+            case 4: // End
+                this.checkHands(this.playerData);
                 break;
         }
     }
@@ -200,6 +180,9 @@ class Controller {
         if(typeof this.playerData[index] !== 'undefined' && this.playerData[index].seatStatus === 1 ) {
             if (this.playerData[index].status != 'fold' || startRound) {
                 this.setPlayerTurn(index);
+                if(this.playerData[index].status === 'check' || this.playerData[index].status === 'bet'){
+                        this.nextRound();
+                }
                 if (startRound){
                     this.assistBlinds(index, ' (B)', this.playerData);
                 }

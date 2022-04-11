@@ -39,8 +39,8 @@ class Deck {
         
 //yksi kortti pakasta
 getCard = () => {
-    let getCard = this.deck.pop();
-    return getCard;
+    let card = this.deck.pop();
+    return {card : card.value + card.suit};
 }
 
 //korttien jako, 2 korttia pakasta
