@@ -120,9 +120,7 @@ class Room {
         let seat = user.seat;
         if (true) {
           
-          if(this.playerData[seat].status != 'fold') {
-            this.controller.removePlayer();
-          }
+          if(this.playerData[seat].status != 'fold') this.controller.removePlayer();
           if (seat == this.controller.getPlayerTurn()) this.controller.nextTurn();
           
           this.playerData[seat] = { ...this.playerData[seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };

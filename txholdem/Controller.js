@@ -1,4 +1,5 @@
 const { Deck } = require("./Deck");
+const Hand = require('pokersolver').Hand;
 
 class Controller {
 
@@ -98,14 +99,28 @@ class Controller {
 
     };
 
-
     /* Determine the winner */
     checkHands(data) {
+        let tableCards = this.tableData[0].cards.map(({card}) => card) // This sucks xD
+        let winners = [];
+        let cards = [];
         data.forEach(element => {
-            if (element[0]) {
-                element.push({ card: this.tableData[0].cards[0].card });
+            if (element.status !== 'fold') {
+                let tmpHand = Hand.solve(tableCards.concat(element.hand.map(({card}) => card)));
+                cards.push(tmpHand);
             }
         });
+
+        winners = Hand.winners(cards);
+        if (winners.length === 1) {
+            console.log(winners[0])
+        }else {
+            console.log('we have multiple winners')
+        }
+    }
+
+        /*
+
         /*
         let winner = checkCards(data);
         this.socket.emit('userError', { action: "end_game", status: "success", message: "${winner} voitti tms." });
@@ -114,7 +129,6 @@ class Controller {
        this.status = 'Pause';
        this.next('Pause');
        */
-    };
 
     pauseGame = () => {
         // TBD
@@ -154,7 +168,6 @@ class Controller {
             case 2: // Turn
             case 3: // River
                 this.tableData[0].cards.push(this.deck.getCard());
-                console.log(this.tableData[0])
                 this.socket.emit('updateTableCards', this.tableData);
                 this.betRound();
                 break;
