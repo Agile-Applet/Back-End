@@ -5,13 +5,12 @@ const SALT = process.env.SALT; // Bcrypt rounds
 const { check, validationResult } = require("express-validator");
 const router = express.Router();
 const DEFAULT_EXPIRATION = process.env.DEFAULT_EXPIRATION || 3600;
-const redisClient = require('../redis');
+const redisClient = require('../infrastructure/redis');
 
-// Connect to database.
-const dbo = require("../conn");
+/* Connect to database. */
+const dbo = require("../infrastructure/conn");
 
-// Login.
-// TODO: tarkistus onko käyttäjä bannitty
+/* Login. */
 router.post("/login", async (req, res) => {
   const dbConnect = dbo.getDb();
   const { username, password } = req.body;
@@ -38,7 +37,7 @@ router.post("/login", async (req, res) => {
                 req.session.isLogged = true;
                 redisClient.setEx(username, DEFAULT_EXPIRATION, JSON.stringify({
                   username: username,
-                  saldo: user.saldo,
+                  amount: user.amount,
                   isAdmin: false,
                   isLogged: true,
                   message: "Logged in successfully.",
@@ -49,7 +48,7 @@ router.post("/login", async (req, res) => {
                   .status(200)
                   .json({
                     username: username,
-                    saldo: user.saldo,
+                    amount: user.amount,
                     isAdmin: false,
                     isLogged: true,
                     message: "Logged in successfully.",
@@ -66,7 +65,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// Check if user has logged in.
+/* Check if user has logged in. */
 router.post("/isLogged", (req, res) => {
   if (req.session.isLogged) {
     res.status(200).json(true);
@@ -75,7 +74,7 @@ router.post("/isLogged", (req, res) => {
   }
 });
 
-// Logout.
+/* Logout. */
 router.post("/logout", (req, res) => {
   if (req.session) {
     req.session.destroy((err) => {
@@ -91,9 +90,9 @@ router.post("/logout", (req, res) => {
   }
 });
 
-// TODO: Add validations.
+/* Register new user. */
 router.post("/register", async (req, res) => {
-  const { listing_id, username, email, password } = req.body;
+  const { username, password } = req.body;
 
   const dbConnect = dbo.getDb();
   await dbConnect
@@ -104,17 +103,14 @@ router.post("/register", async (req, res) => {
         res.status(409).send("Username already taken.");
       } else {
         const dbConnect = dbo.getDb();
-
         const salt = bcryptjs.genSaltSync(parseInt(SALT));
         const hashedPassword = bcryptjs.hashSync(password, salt);
 
         const playersDocument = {
-          listing_id: listing_id,
           last_modified: new Date(),
           username: username,
-          saldo: 100.0,
+          amount: 100.0,
           usergroup: 0,
-          email: email,
           password: hashedPassword,
         };
         dbConnect
@@ -131,4 +127,4 @@ router.post("/register", async (req, res) => {
     });
 });
 
-module.exports = router, { redisClient };
+module.exports = router;
