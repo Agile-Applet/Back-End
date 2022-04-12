@@ -74,23 +74,27 @@ const checkCards = (hands) => {
 
     hands.forEach(hand => {
         oneHand = [];
-        hand.forEach(card => {
-            oneHand.push(card.card);
-        });
+        if (hand.playerName !== 'Free') {
+            hand.hand.forEach(card => {
+
+                oneHand.push(card.card);
+            });
+        }
         if (oneHand.length !== 0) {
             solvedHands.push(Hand.solve(oneHand));
         }
+
     });
 
     winner = Hand.winners(solvedHands);
 
-    /*
     solvedHands.forEach(hand => {
         if (winner[0] && hand.cards === winner[0].cards) {
             winner = solvedHands.indexOf(hand);
         }
     });
-    //return winner;*/
+
+    return winner;
     console.log(winner);
 };
 

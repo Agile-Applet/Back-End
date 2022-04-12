@@ -1,4 +1,4 @@
-const { dealCards, checkCards, removeCards } = require("./utils/roundhelpers");
+const { dealCards, checkCards, removeCards, createDeck } = require("./utils/roundhelpers");
 const { getRandomInt } = require("./utils/helpers");
 
 class Controller {
@@ -10,37 +10,23 @@ class Controller {
         this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
         this.turn = 0;
+        this.totalBet = 0;
         this.activePlayers = 0;
-        this.totalBet = 50;
         this.smallBlindTurn = -1;
         this.bigBlindTurn = 0;
         this.playerData = [];
         this.tableData = [];
+        this.statuses = ['Flop', 'Turn', 'River', 'Check'];
     }
-
-    /*  
-        PANOSTUSKIERROS: 
-            - Ennen ja jälkeen jokaisen kortin/korttien paljastamista pelaajat panostavat vuorollaan.
-            - Pysyäkseen mukana kädessä ja nähdäkseen seuraavan kortin jokaisen pelaajan täytyy laittaa sama määrä merkkejä pottiin kuin muut ovat laittaneet
-
-        PELINKULKU:
-            1. Jokaiselle pelaajalle jaetaan kaksi korttia, jotka vain he itse saavat katsoa
-            1.1 Panostuskierros 
-            2. Jakaja jakaa kolme korttia ("FLOP")
-            2.1 Panostuskierros
-            3. Jakaja jakaa neljännen kortin ("TURN")
-            3.1 Panostuskierros
-            4. Jakaja jakaa viidenen kortin ("RIVER")
-            3.2 Panostuskierros
-            5. Näyttö & voittava käsi/tarkastukset ("CHECK")
-    */
 
     /* Start a new game */
     startGame = (data) => {
         this.status = "Start";
         this.playerData = data;
         this.tableData = [];
-        this.totalBet = 50;
+        this.statuses = ['Flop', 'Turn', 'River', 'Check'];
+        this.totalBet = 0;
+        this.activePlayers = 0;
         this.smallBlindTurn++;
         this.bigBlindTurn++;
         let role = '';
@@ -79,31 +65,28 @@ class Controller {
         });
         if (this.activePlayers < 3) {
             this.turn = 0;
+            this.playerData[this.turn] = ({ ...this.playerData[this.turn], hasTurn: true });
+            this.socket.emit('resetTableCards', this.tableData);
+            this.socket.emit('updatePlayer', this.playerData);
         }
         this.next('Start');
     };
 
     /* Handle Betting */
     checkBet(bet, index) {
-        console.log('index:  ' + index);
         if (index == 0) {
             index++;
         } else {
             index--;
         }
-        console.log('index:  ' + index);
-        console.log('bet:  ' + bet);
-        console.log('lastBet:  ' + this.playerData[index].lastBet);
         /* Check that current player bets enough */
         if (bet == this.playerData[index].lastBet) {
             this.setPlayerTurn(1);
             this.betround++;
-            console.log('this.betround:  ' + this.betround);
-            console.log(this.betround == this.activePlayers - 1);
             if (this.betround == this.activePlayers - 1) {
-                this.status = 'Flop';
                 this.betround = 0;
-                this.flopRound();
+                this.status = this.statuses[0];
+                this.next(this.statuses[0]);
             }
             return true;
         } else if (bet > this.playerData[index].lastBet) {
@@ -120,12 +103,22 @@ class Controller {
         return parseFloat(this.turn);
     };
 
-    /* Set current player turn */
+    /* Set current player turn
+     - Updates the front regularly and ensures that the current turn is seen
+  */
     setPlayerTurn(data) {
         this.turn += data;
         if (this.turn == this.activePlayers) {
             this.turn = 0;
         }
+        this.playerData.forEach(player => {
+            if (this.turn == player.playerId) {
+                this.playerData[player.playerId] = ({ ...this.playerData[player.playerId], hasTurn: true });
+            } else {
+                this.playerData[player.playerId] = ({ ...this.playerData[player.playerId], hasTurn: false });
+            }
+            this.socket.emit('updatePlayer', this.playerData)
+        })
     };
 
     /* Return current game status */
@@ -141,62 +134,46 @@ class Controller {
     /* Handle Bet Round */
     betRound() {
         this.socket.emit('syncGame', true);
-        /* Kun Bet ohi
-        this.status = 'Flop';
-        this.flopRound(); 
-        */
     };
 
     /* Handle Flop Round */
-    flopRound() {
+    turnChange() {
+        this.totalBet = 50;
+        this.statuses.splice(0, 1);
         this.playerData.forEach(element => {
             this.totalBet += element.lastBet;
         });
-        this.tableData.push({ pot: this.totalBet, cards: dealCards(0, 'dealer'), status: this.status });
-        this.next('Flop');
-    };
-
-    /* Handle Turn Round */
-    turnRound() {
-        // TBD
-        /* Kun Turn ohi
-       this.status = 'Check';
-       this.next('Check');
-       */
-    };
-
-    /* Handle River Round */
-    riverRound() {
-        // TBD
-        /* Kun River ohi
-       this.status = 'Turn';
-       this.next('Turn');
-       */
+        this.tableData[0] = { pot: this.totalBet, cards: this.tableData[0].cards, status: this.status };
+        this.socket.emit('updateTableCards', this.tableData);
     };
 
     /* Determine the winner */
     checkHands(data) {
-        data.forEach(element => {
-            if (element[0]) {
-                element.push({ card: this.tableData[0].cards[0].card });
+        data.forEach(player => {
+            if (player.playerName !== 'Free') {
+                this.tableData[0].cards.forEach(card => {
+                    player.hand.push(card);
+                });
             }
         });
-        /*
         let winner = checkCards(data);
-        this.socket.emit('userError', { action: "end_game", status: "success", message: "${winner} voitti tms." });
-        */
-        /* Kun Check ohi
-       this.status = 'Pause';
-       this.next('Pause');
-       */
+        this.playerData[winner].money += this.totalBet;
+
+        this.socket.emit('userError', { action: "end_game", status: "success", message: this.playerData[winner].playerName + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
+        this.socket.emit('updatePlayer', this.playerData);
+        this.status = 'Pause';
+        this.next('Pause');
     };
 
     pauseGame = () => {
-        // TBD
+        /* TBD */
         setTimeout(() => {
-            this.socket.emit('userError', { action: 'pause_game', status: 'success', message: "Puolen minuutin tauko." });
-        }, 3000);
-    }
+            this.smallBlindTurn = -1;
+            this.bigBlindTurn = 0;
+            createDeck();
+            this.startGame(this.playerData);
+        }, 5000);
+    };
 
     /* Game Flow */
     next = () => {
@@ -209,31 +186,25 @@ class Controller {
                 break;
 
             case 'Bet':
-                // TBD
                 this.betRound();
                 break;
 
             case 'Flop':
-                this.socket.emit('updateTableCards', this.tableData);
-                //this.socket.emit('syncGame', true);
-                //this.status = 'River';
-                //this.next('River');
+                this.tableData.push({ pot: this.totalBet, cards: dealCards(0, 'dealer'), status: this.status });
+                this.turnChange();
                 break;
 
             case 'Turn':
-                // TBD
-                this.turnRound();
+                this.turnChange();
                 break;
 
             case 'River':
-                // TBD
-                this.riverRound();
+                this.turnChange();
                 break;
 
-            //Aka Check/End/Show
             case 'Check':
+                this.turnChange();
                 this.checkHands(this.playerData);
-                // TBD
                 break;
 
             case 'Pause':
