@@ -103,20 +103,23 @@ class Controller {
     checkHands(data) {
         let tableCards = this.tableData[0].cards.map(({card}) => card) // This sucks xD
         let winners = [];
+        let players = [];
         let cards = [];
         data.forEach(element => {
             if (element.status !== 'fold') {
+                players.push(element);
                 let tmpHand = Hand.solve(tableCards.concat(element.hand.map(({card}) => card)));
                 cards.push(tmpHand);
             }
         });
 
         winners = Hand.winners(cards);
-        if (winners.length === 1) {
-            console.log(winners[0])
-        }else {
-            console.log('we have multiple winners')
-        }
+        winners.forEach((winner) => { // TODO: pot share with multiple players
+            let windex = cards.indexOf(winner);
+            console.log(winner);
+            this.socket.emit('userError', { action: "end_game", status: "success", message: `${players[windex].playerName} voitti. ${winner.descr}` });
+        })
+
     }
 
         /*
