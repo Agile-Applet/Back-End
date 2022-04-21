@@ -1,11 +1,11 @@
-const { dealCards, checkCards, removeCards, createDeck } = require("./utils/roundhelpers");
-const { getRandomInt } = require("./utils/helpers");
+const { Deck } = require("./Deck");
+const { checkCards } = require("./utils/roundhelpers");
 
 class Controller {
 
     constructor(room, socketRoom) {
         this.room = room,
-            this.socket = socketRoom;
+        this.socket = socketRoom;
 
         this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
@@ -17,6 +17,7 @@ class Controller {
         this.playerData = [];
         this.tableData = [];
         this.statuses = ['Flop', 'Turn', 'River', 'Check'];
+        this.deck = new Deck();
     }
 
     /* Start a new game */
@@ -32,6 +33,7 @@ class Controller {
         let role = '';
         let seatStatus = 0;
         let lastBet = 0;
+        this.deck.resetDeck();
 
         if (this.smallBlindTurn === this.room.getPlayerCount()) {
             this.smallBlindTurn = 0;
@@ -58,10 +60,9 @@ class Controller {
             }
             this.playerData[this.playerData.indexOf(element)] = {
                 playerId: element.playerId, playerName: element.playerName, seatStatus: seatStatus, money: element.money - lastBet,
-                lastBet: lastBet, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: role
+                lastBet: lastBet, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: role
             }
             this.turn = this.playerData.indexOf(element);
-            removeCards(0);
         });
         if (this.activePlayers < 3) {
             this.turn = 0;
@@ -170,7 +171,6 @@ class Controller {
         setTimeout(() => {
             this.smallBlindTurn = -1;
             this.bigBlindTurn = 0;
-            createDeck();
             this.startGame(this.playerData);
         }, 5000);
     };
@@ -190,7 +190,7 @@ class Controller {
                 break;
 
             case 'Flop':
-                this.tableData.push({ pot: this.totalBet, cards: dealCards(0, 'dealer'), status: this.status });
+                this.tableData.push({ pot: this.totalBet, cards: this.deck.dealCards(5), status: this.status });
                 this.turnChange();
                 break;
 

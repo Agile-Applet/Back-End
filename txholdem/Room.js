@@ -2,8 +2,8 @@
 const { getRandomInt } = require("./utils/helpers");
 const { addUser, updateUser, getUser, deleteUser } = require("../user/users");
 const { Controller } = require("./Controller");
-const { createDeck } = require("./utils/roundhelpers");
 const { depositGameFunds } = require("../txholdem/utils/depositGameFunds");
+const { Deck } = require("./Deck");
 
 const avatars = [
   'https://content-eu.invisioncic.com/b310290/monthly_2017_04/Nikolay-Kostyrko_Time1491772457527.jpg.2d6ef3b3f499abd15f631f55bbc2aba5.jpg',
@@ -99,8 +99,6 @@ class Room {
             updateUser(user.name, seat, user.room);
             this.playerData[seat] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)], role: '' };
             if (this.players === 1) {
-              console.log(createDeck());
-              createDeck();
             } else if (this.players === 2) {
               this.controller.startGame(this.playerData);
             }
