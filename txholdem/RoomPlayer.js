@@ -1,19 +1,20 @@
 /* Texas Holdem Player */
 const { Player } = require("./Player");
-const { getHandPosition } = require('./utils/helpers');
+//const { getHandPosition } = require('./utils/helpers');
 
-//{ ...this.playerData[usr.seat], playerName: "Free Seat", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '' };
+// { playerId: 5, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '', role: '' }
 
 class RoomPlayer extends Player {
 
-    constructor(id, name, money, avatar, socketId, seatId, lastBet) {
+    constructor(id, name, money, avatar, socketId, seatId, lastBet, role) {
         super(id, name, money, avatar);
         this.socketId = socketId;
         this.seatId = seatId;
         this.lastBet = 0;
         this.hand = [],
         this.showHand = false;
-        this.handPosition = getHandPosition(seatId);
+        this.handPosition = "player-cards-right";
+        this.role = role;
     }
 
     getSocketId = () => (this.socketId);

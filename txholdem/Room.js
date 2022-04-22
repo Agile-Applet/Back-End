@@ -4,6 +4,8 @@ const { addUser, updateUser, getUser, deleteUser } = require("../user/users");
 const { Controller } = require("./Controller");
 const { depositGameFunds } = require("../txholdem/utils/depositGameFunds");
 const { Deck } = require("./Deck");
+const { Seat } = require("./Seat");
+const { RoomPlayer } = require("./RoomPlayer");
 
 const avatars = [
   'https://content-eu.invisioncic.com/b310290/monthly_2017_04/Nikolay-Kostyrko_Time1491772457527.jpg.2d6ef3b3f499abd15f631f55bbc2aba5.jpg',
@@ -38,6 +40,16 @@ class Room {
       { playerId: 5, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '', role: '' }
     ];
 
+    /* Room Data, replaces the old playerData */
+
+    this.roomData = [];
+    for (let i=0; i <= 5; i++) {
+      let seat = new Seat(i, 0);
+      this.roomData.push(seat);
+    }
+
+    console.log(this.roomData);
+
     /* Listening room, controller */
     this.room = io.of('/' + uri);
     this.listenRoom();
@@ -47,9 +59,11 @@ class Room {
   /* Getters */
   getPlayerData = () => (this.playerData);
   getPlayerCount = () => (this.players);
+  getRoomData = () => (this.roomData);
 
   /* Setters */
   setPlayerData = (data) => this.playerData(data);
+  setRoomData = (data) => this.roomData(data);
 
   /* Listen Specific Room */
   listenRoom() {
@@ -60,19 +74,19 @@ class Room {
         const usr = getUser(socket.id);
         const user = deleteUser(socket.id);
         if (user) {
-          if (this.playerData[usr.seat].seatStatus != 0) {
+          if (this.roomData[usr.seat].status != 0) {
             this.players--;
             console.log("[Disconnect] Current players: " + this.players + " of " + this.maxPlayers);
           }
-          this.playerData[usr.seat] = { ...this.playerData[usr.seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
-          this.room.in(user.room).emit('updatePlayer', this.playerData);
+          this.roomData[usr.seat].resetSeat();
+          this.room.in(user.room).emit('updatePlayer', this.roomData);
           if (this.players === 0) {
             this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
             this.room.in(user.room).emit('syncGame', false);
-            this.playerData.forEach(player => {
-              this.playerData[this.playerData.indexOf(player)] = { ...this.playerData[this.playerData.indexOf(player)], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
+            this.roomData.forEach(seat => {
+              this.roomData[this.roomData.indexOf(seat)].resetSeat();
             });
-            this.room.in(user.room).emit('updatePlayer', this.playerData);
+            this.room.in(user.room).emit('updatePlayer', this.roomData);
           }
         }
       });
@@ -81,7 +95,7 @@ class Room {
       socket.on('join_room', (data) => {
         const { user, error } = addUser(socket.id, data.name, 0, data.room);
         socket.join(data.room);
-        this.room.in(data.room).emit('updatePlayer', this.playerData);
+        this.room.in(data.room).emit('updatePlayer', this.roomData);
       });
 
       /* Game Seating */
@@ -90,19 +104,19 @@ class Room {
       socket.on('join_seat', (data) => {
         if (this.players <= this.maxPlayers) {
           let seat = data.seatId;
-          if (this.playerData[seat].seatStatus === 0) {
+          if (this.roomData[seat].status === 0) {
             const user = getUser(socket.id);
             if (user.seat && user.seat != 0) {
               return socket.emit('userError', { action: 'join_seat', status: 'failed', message: "Olet jo toisella pöytäpaikalla." });
             }
             this.players++;
             updateUser(user.name, seat, user.room);
-            this.playerData[seat] = { ...this.playerData[seat], playerName: user.name, seatStatus: 1, money: data.amount, lastBet: 0, hand: "", showHand: false, avatar: avatars[getRandomInt(5)], role: '' };
+            this.roomData[seat].setPlayer(new RoomPlayer(seat, user.name, data.amount, avatars[getRandomInt(5)], socket.id, seat, null));
             if (this.players === 1) {
             } else if (this.players === 2) {
-              this.controller.startGame(this.playerData);
+              this.controller.startGame(this.roomData);
             }
-            this.room.in(user.room).emit('updatePlayer', this.playerData);
+            this.room.in(user.room).emit('updatePlayer', this.roomData);
             console.log("[Join] Current players: " + this.players + " of " + this.maxPlayers);
           } else {
             console.log("[Join] Seat is already taken.");
@@ -119,11 +133,11 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (1 == 1) {
-          this.playerData[seat] = { ...this.playerData[seat], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
+          this.roomData[seat].resetSeat();
           updateUser(user.name, 0, user.room);
           this.players--;
           console.log("[Leave] Current players: " + this.players + " of " + this.maxPlayers);
-          this.room.in(user.room).emit('updatePlayer', this.playerData);
+          this.room.in(user.room).emit('updatePlayer', this.roomData);
         } else {
           console.log("[Leave] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: 'leave_seat', status: 'failed', message: "Et voi tällä hetkellä poistua paikaltasi." });
@@ -131,10 +145,10 @@ class Room {
         if (this.players === 0) {
           this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
           this.room.in(user.room).emit('syncGame', false);
-          this.playerData.forEach(player => {
-            this.playerData[this.playerData.indexOf(player)] = { ...this.playerData[this.playerData.indexOf(player)], playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '', role: '' };
+          this.roomData.forEach(player => {
+            this.roomData[this.roomData.indexOf(player)].resetSeat();
           });
-          this.room.in(user.room).emit('updatePlayer', this.playerData);
+          this.room.in(user.room).emit('updatePlayer', this.roomData);
         }
       });
 
@@ -143,8 +157,8 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.getPlayerTurn()) {
-          this.playerData[seat] = { ...this.playerData[user.seat], hand: [], showHand: false };
-          this.room.in(user.room).emit('updatePlayer', this.playerData);
+          this.roomData[seat].getPlayer().setShowHand(false);
+          this.room.in(user.room).emit('updatePlayer', this.roomData);
         } else {
           console.log("[Fold] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: 'fold_hand', status: 'failed', message: "Et voi tällä hetkellä luovuttaa kättä." });
@@ -166,11 +180,11 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.getPlayerTurn()) {
-          const bet = this.playerData[user.seat].lastBet + data.betAmount;
-          if (this.playerData[user.seat].money >= data.betAmount) {
+          const bet = this.roomData[user.seat].getPlayer().lastBet + data.betAmount;
+          if (this.roomData[user.seat].getPlayer().getMoney() >= data.betAmount) {
             if (this.controller.checkBet(bet, parseFloat(seat))) {
-              this.playerData[user.seat] = { ...this.playerData[user.seat], money: this.playerData[user.seat].money - data.betAmount, lastBet: bet, showHand: false };
-              this.room.in(user.room).emit('updatePlayer', this.playerData);
+              this.roomData[user.seat].getPlayer().deductMoney(data.betAmount);
+              this.room.in(user.room).emit('updatePlayer', this.roomData);
             }
           } else {
             console.log("[Bet] Wrong amount.");
