@@ -30,16 +30,6 @@ class Room {
     this.maxPlayers = 6;
     this.socket = null;
 
-    /* Player Array */
-    this.playerData = [
-      { playerId: 0, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, handPosition: 'player-cards-right', avatar: '', role: '' },
-      { playerId: 1, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '' },
-      { playerId: 2, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '' },
-      { playerId: 3, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-left', avatar: '', role: '' },
-      { playerId: 4, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '', role: '' },
-      { playerId: 5, playerName: 'Free', seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: true, handPosition: 'player-cards-right', avatar: '', role: '' }
-    ];
-
     /* Room Data, replaces the old playerData */
 
     this.roomData = [];
@@ -57,12 +47,10 @@ class Room {
   }
 
   /* Getters */
-  getPlayerData = () => (this.playerData);
   getPlayerCount = () => (this.players);
   getRoomData = () => (this.roomData);
 
   /* Setters */
-  setPlayerData = (data) => this.playerData(data);
   setRoomData = (data) => this.roomData(data);
 
   /* Listen Specific Room */
@@ -111,11 +99,13 @@ class Room {
             }
             this.players++;
             updateUser(user.name, seat, user.room);
-            this.roomData[seat].setPlayer(new RoomPlayer(seat, user.name, data.amount, avatars[getRandomInt(5)], socket.id, seat, null));
+            this.roomData[seat].reserveSeat(user.name);
+            this.roomData[seat].setPlayer(new RoomPlayer(seat, user.name, data.amount, avatars[getRandomInt(5)], socket.id, seat, 0, ""));
             if (this.players === 1) {
             } else if (this.players === 2) {
               this.controller.startGame(this.roomData);
             }
+            console.log(this.roomData);
             this.room.in(user.room).emit('updatePlayer', this.roomData);
             console.log("[Join] Current players: " + this.players + " of " + this.maxPlayers);
           } else {

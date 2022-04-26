@@ -14,7 +14,7 @@ class Controller {
         this.activePlayers = 0;
         this.smallBlindTurn = -1;
         this.bigBlindTurn = 0;
-        this.playerData = [];
+        this.roomData = [];
         this.tableData = [];
         this.statuses = ['Flop', 'Turn', 'River', 'Check'];
         this.deck = new Deck();
@@ -23,7 +23,7 @@ class Controller {
     /* Start a new game */
     startGame = (data) => {
         this.status = "Start";
-        this.playerData = data;
+        this.roomData = data;
         this.tableData = [];
         this.statuses = ['Flop', 'Turn', 'River', 'Check'];
         this.totalBet = 0;
@@ -41,34 +41,36 @@ class Controller {
             this.bigBlindTurn = 0;
         }
 
-        this.playerData.forEach(element => {
-            if (element.playerName === 'Free') {
+        this.roomData.forEach(element => {
+            let elementIndex = this.roomData.indexOf(element);
+            if (element.status === 0) {
                 seatStatus = 2;
             } else {
-                seatStatus = element.seatStatus;
+                seatStatus = element.status;
                 this.activePlayers++;
             }
-            if (element.playerId === this.smallBlindTurn) {
+            if (element.id === this.smallBlindTurn) {
                 role = ' (S)';
                 lastBet = 50;
-            } else if (element.playerId === this.bigBlindTurn) {
+            } else if (element.id === this.bigBlindTurn) {
                 role = ' (B)';
                 lastBet = 100;
             } else {
                 role = '';
                 lastBet = 0;
             }
-            this.playerData[this.playerData.indexOf(element)] = {
-                playerId: element.playerId, playerName: element.playerName, seatStatus: seatStatus, money: element.money - lastBet,
-                lastBet: lastBet, hand: this.deck.dealCards(2), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: role
-            }
-            this.turn = this.playerData.indexOf(element);
+            this.roomData[elementIndex].setStatus(seatStatus);
+            this.roomData[elementIndex].getPlayer().deductMoney(lastBet);
+            this.roomData[elementIndex].getPlayer().setLastBet(lastBet);
+            this.roomData[elementIndex].getPlayer().setRole(role);
+            this.roomData[elementIndex].getPlayer().setHand(this.deck.dealCards(2));
+            this.turn = elementIndex;
         });
         if (this.activePlayers < 3) {
             this.turn = 0;
-            this.playerData[this.turn] = ({ ...this.playerData[this.turn], hasTurn: true });
+            this.roomData[this.turn].setTurn(true);
             this.socket.emit('resetTableCards', this.tableData);
-            this.socket.emit('updatePlayer', this.playerData);
+            this.socket.emit('updatePlayer', this.roomData);
         }
         this.next('Start');
     };
@@ -81,7 +83,7 @@ class Controller {
             index--;
         }
         /* Check that current player bets enough */
-        if (bet == this.playerData[index].lastBet) {
+        if (bet == this.roomData[index].getPlayer().getLastBet()) {
             this.setPlayerTurn(1);
             this.betround++;
             if (this.betround == this.activePlayers - 1) {
@@ -90,7 +92,7 @@ class Controller {
                 this.next(this.statuses[0]);
             }
             return true;
-        } else if (bet > this.playerData[index].lastBet) {
+        } else if (bet > this.roomData[index].getPlayer().getLastBet()) {
             this.setPlayerTurn(1);
             this.betround = 0;
             return true;
@@ -112,13 +114,13 @@ class Controller {
         if (this.turn == this.activePlayers) {
             this.turn = 0;
         }
-        this.playerData.forEach(player => {
-            if (this.turn == player.playerId) {
-                this.playerData[player.playerId] = ({ ...this.playerData[player.playerId], hasTurn: true });
+        this.roomData.forEach(element => {
+            if (this.turn == element.id) {
+                this.roomData[element.id].setTurn(true);
             } else {
-                this.playerData[player.playerId] = ({ ...this.playerData[player.playerId], hasTurn: false });
+                this.roomData[element.id].setTurn(false);
             }
-            this.socket.emit('updatePlayer', this.playerData)
+            this.socket.emit('updatePlayer', this.roomData)
         })
     };
 
@@ -141,8 +143,8 @@ class Controller {
     turnChange() {
         this.totalBet = 50;
         this.statuses.splice(0, 1);
-        this.playerData.forEach(element => {
-            this.totalBet += element.lastBet;
+        this.roomData.forEach(element => {
+            this.totalBet += element.getPlayer().getLastBet();
         });
         this.tableData[0] = { pot: this.totalBet, cards: this.tableData[0].cards, status: this.status };
         this.socket.emit('updateTableCards', this.tableData);
@@ -151,17 +153,17 @@ class Controller {
     /* Determine the winner */
     checkHands(data) {
         data.forEach(player => {
-            if (player.playerName !== 'Free') {
+            if (player.getPlayer().getName() !== 'Free') {
                 this.tableData[0].cards.forEach(card => {
-                    player.hand.push(card);
+                    player.getPlayer().getHand().push(card);
                 });
             }
         });
         let winner = checkCards(data);
-        this.playerData[winner].money += this.totalBet;
+        this.roomData[winner].money += this.totalBet;
 
-        this.socket.emit('userError', { action: "end_game", status: "success", message: this.playerData[winner].playerName + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
-        this.socket.emit('updatePlayer', this.playerData);
+        this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[winner].getPlayer().getName() + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
+        this.socket.emit('updatePlayer', this.roomData);
         this.status = 'Pause';
         this.next('Pause');
     };
@@ -171,7 +173,7 @@ class Controller {
         setTimeout(() => {
             this.smallBlindTurn = -1;
             this.bigBlindTurn = 0;
-            this.startGame(this.playerData);
+            this.startGame(this.roomData);
         }, 5000);
     };
 
@@ -204,7 +206,7 @@ class Controller {
 
             case 'Check':
                 this.turnChange();
-                this.checkHands(this.playerData);
+                this.checkHands(this.roomData);
                 break;
 
             case 'Pause':

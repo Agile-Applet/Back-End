@@ -1,4 +1,3 @@
-//const { getHandPosition } = require('./utils/helpers');
 const { RoomPlayer } = require("./RoomPlayer");
 
 class Seat {
@@ -7,26 +6,32 @@ class Seat {
         this.id = id;
         this.status = status;
         this.label = "Free";
-        this.handPosition = "player-cards-right";
-        this.player = new RoomPlayer(0, "Unknown", 0, "", null, id, 0, "")
+        this.player = new RoomPlayer(0, "Tuntematon", 0, "", "", id, 0, "")
+        this.hasTurn = false;
     }
 
     getId = () => (this.id);
-    setId = (id) => this.id(id);
+    setId = (id) => this.id = id;
 
     getStatus = () => (this.status);
-    setStatus = (status) => this.status(status);
+    setStatus = (status) => this.status = status;
 
     getLabel = () => (this.label);
-    setLabel = (label) => this.status(label);
+    setLabel = (label) => this.label = label;
 
     getPlayer = () => (this.player);
-    setPlayer = (player) => this.player(player);
+    setPlayer = (player) => this.player = player;
+
+    setTurn = (bool) => this.hasTurn = bool;
+
+    reserveSeat = (playerName) => {
+        this.label = playerName;
+        this.status = 1;
+    }
 
     resetSeat = () => {
         this.status = 0;
-        this.status = "Free";
-        this.player = new RoomPlayer(0, "Unknown", 0, "", null, id, 0, "")
+        this.player = new RoomPlayer(0, "Tuntematon", 0, "", "", this.id, 0, "")
     }
 
 }

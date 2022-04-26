@@ -10,11 +10,11 @@ class Player {
     }
 
     getId = () => (this.id);
-    setId = (id) => this.id(id);
+    setId = (id) => this.id = id;
     getName = () => (this.name);
-    setName = (name) => this.name(name); 
+    setName = (name) => this.name = name;
     getMoney = () => (this.money);
-    setMoney = (amount) => this.money(amount);
+    setMoney = (amount) => this.money = amount;
     getAvatar = () => (this.avatar);
 
     deductMoney = (amount) => {
