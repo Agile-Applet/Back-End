@@ -1,9 +1,8 @@
 /* Texas Holdem Game Room implemented with Socket.io. */
-const { getRandomInt } = require("./utils/helpers");
+const { getRandomInt, validateCheck } = require("./utils/roundhelpers");
 const { addUser, updateUser, getUser, deleteUser } = require("../user/users");
 const { Controller } = require("./Controller");
 const { depositGameFunds } = require("../txholdem/utils/depositGameFunds");
-const { Deck } = require("./Deck");
 const { Seat } = require("./Seat");
 const { RoomPlayer } = require("./RoomPlayer");
 
@@ -31,14 +30,11 @@ class Room {
     this.socket = null;
 
     /* Room Data, replaces the old playerData */
-
     this.roomData = [];
-    for (let i=0; i <= 5; i++) {
+    for (let i = 0; i <= 5; i++) {
       let seat = new Seat(i, 0);
       this.roomData.push(seat);
     }
-
-    console.log(this.roomData);
 
     /* Listening room, controller */
     this.room = io.of('/' + uri);
@@ -59,22 +55,22 @@ class Room {
       console.log("[Connect] User connected : " + socket.id);
       socket.on('disconnect', () => {
         console.log("[Disconnect] User disconnected");
-        const usr = getUser(socket.id);
-        const user = deleteUser(socket.id);
-        if (user) {
-          if (this.roomData[usr.seat].status != 0) {
+        const getUser = getUser(socket.id);
+        const deleteUser = deleteUser(socket.id);
+        if (deleteUser) {
+          if (this.roomData[getUser.seat].status != 0) {
             this.players--;
-            console.log("[Disconnect] Current players: " + this.players + " of " + this.maxPlayers);
+            console.log("[Disconnect] Current players: " + this.getPlayerCount() + " of " + this.maxPlayers);
           }
-          this.roomData[usr.seat].resetSeat();
-          this.room.in(user.room).emit('updatePlayer', this.roomData);
-          if (this.players === 0) {
-            this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
-            this.room.in(user.room).emit('syncGame', false);
+          this.roomData[getUser.seat].resetSeat();
+          this.room.in(deleteUser.room).emit('updatePlayer', this.roomData);
+          if (this.getPlayerCount() === 0) {
+            this.room.in(deleteUser.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
+            this.room.in(deleteUser.room).emit('syncGame', false);
             this.roomData.forEach(seat => {
               this.roomData[this.roomData.indexOf(seat)].resetSeat();
             });
-            this.room.in(user.room).emit('updatePlayer', this.roomData);
+            this.room.in(deleteUser.room).emit('updatePlayer', this.roomData);
           }
         }
       });
@@ -90,7 +86,7 @@ class Room {
 
       /* Joining Free Seat */
       socket.on('join_seat', (data) => {
-        if (this.players <= this.maxPlayers) {
+        if (this.getPlayerCount() <= this.maxPlayers) {
           let seat = data.seatId;
           if (this.roomData[seat].status === 0) {
             const user = getUser(socket.id);
@@ -101,13 +97,13 @@ class Room {
             updateUser(user.name, seat, user.room);
             this.roomData[seat].reserveSeat(user.name);
             this.roomData[seat].setPlayer(new RoomPlayer(seat, user.name, data.amount, avatars[getRandomInt(5)], socket.id, seat, 0, ""));
-            if (this.players === 1) {
-            } else if (this.players === 2) {
+            if (this.getPlayerCount() === 1) {
+            } else if (this.getPlayerCount() === 2) {
               this.controller.startGame(this.roomData);
             }
             console.log(this.roomData);
             this.room.in(user.room).emit('updatePlayer', this.roomData);
-            console.log("[Join] Current players: " + this.players + " of " + this.maxPlayers);
+            console.log("[Join] Current players: " + this.getPlayerCount() + " of " + this.maxPlayers);
           } else {
             console.log("[Join] Seat is already taken.");
             return socket.emit('userError', { action: 'join_seat', status: 'failed', message: "Valitsemasi pöytäpaikka on jo varattu toiselle pelaajalle." });
@@ -126,13 +122,13 @@ class Room {
           this.roomData[seat].resetSeat();
           updateUser(user.name, 0, user.room);
           this.players--;
-          console.log("[Leave] Current players: " + this.players + " of " + this.maxPlayers);
+          console.log("[Leave] Current players: " + this.getPlayerCount() + " of " + this.maxPlayers);
           this.room.in(user.room).emit('updatePlayer', this.roomData);
         } else {
           console.log("[Leave] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: 'leave_seat', status: 'failed', message: "Et voi tällä hetkellä poistua paikaltasi." });
         }
-        if (this.players === 0) {
+        if (this.getPlayerCount() === 0) {
           this.room.in(user.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
           this.room.in(user.room).emit('syncGame', false);
           this.roomData.forEach(player => {
@@ -149,20 +145,28 @@ class Room {
         if (seat == this.controller.getPlayerTurn()) {
           this.roomData[seat].getPlayer().setShowHand(false);
           this.room.in(user.room).emit('updatePlayer', this.roomData);
+          this.controller.validateFold(this.getPlayerCount());
         } else {
           console.log("[Fold] Player is not authorized to execute this action right now.");
-          return socket.emit('userError', { action: 'fold_hand', status: 'failed', message: "Et voi tällä hetkellä luovuttaa kättä." });
+          return socket.emit('userError', { action: 'fold_hand', status: 'failed', message: "Et ole tällä hetkellä vuorossa." });
         }
       });
 
       socket.on('check_hand', (data) => {
         const user = getUser(socket.id);
         let seat = user.seat;
+
         if (seat == this.controller.getPlayerTurn()) {
-          this.controller.setPlayerTurn(1);
+          let canCheck = this.controller.validateCheck(this.getPlayerCount());
+          if (canCheck) {
+            this.roomData[seat].player.setLastBet(0);
+          } else {
+            console.log("[Check] Player is not authorized to execute this action right now.");
+            return socket.emit('userError', { action: 'check', status: 'failed', message: "Et voi tällä hetkellä ohittaa vuoroasi." });
+          }
         } else {
-          console.log("[Fold] Player is not authorized to execute this action right now.");
-          return socket.emit('userError', { action: 'check', status: 'failed', message: "Et voi tällä hetkellä ohittaa vuoroasi." });
+          console.log("[Check] Player is not authorized to execute this action right now.");
+          return socket.emit('userError', { action: 'check', status: 'failed', message: "Et ole tällä hetkellä vuorossa." });
         }
       });
 
@@ -170,10 +174,11 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.getPlayerTurn()) {
-          const bet = this.roomData[user.seat].getPlayer().lastBet + data.betAmount;
-          if (this.roomData[user.seat].getPlayer().getMoney() >= data.betAmount) {
-            if (this.controller.checkBet(bet, parseFloat(seat))) {
-              this.roomData[user.seat].getPlayer().deductMoney(data.betAmount);
+          const bet = this.roomData[seat].getPlayer().lastBet + data.betAmount;
+          if (this.roomData[seat].getPlayer().getMoney() >= data.betAmount) {
+            if (this.controller.checkBet(bet, parseInt(seat))) {
+              this.roomData[seat].getPlayer().deductMoney(data.betAmount);
+              this.roomData[seat].getPlayer().setBetAmount(data.betAmount);
               this.room.in(user.room).emit('updatePlayer', this.roomData);
             }
           } else {
@@ -182,7 +187,7 @@ class Room {
           }
         } else {
           console.log("[Bet] Player is not authorized to execute this action right now.");
-          return socket.emit('userError', { action: 'bet_hand', status: 'failed', message: "Et voi tällä hetkellä korottaa panosta." });
+          return socket.emit('userError', { action: 'bet_hand', status: 'failed', message: "Et ole tällä hetkellä vuorossa." });
         }
       });
     });

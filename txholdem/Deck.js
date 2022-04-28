@@ -1,14 +1,13 @@
 const { Card } = require("./Card");
 
 class Deck {
-
     constructor() {
         this.deck = [];
         this.resetDeck();
         this.shuffle();
-}
-//kortille tarpeelliset maa & arvo (S = pata, C = risti, D = ruutu, H = hertta)
-
+    }
+    
+    /* Make a new deck  (S = pata, C = risti, D = ruutu, H = hertta) */
     resetDeck = () => {
         this.deck = [];
         const values = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
@@ -18,14 +17,14 @@ class Deck {
         for (let suit of suits) {
             for (let value of values) {
                 this.deck.push(new Card(value, suit, ranks[values.indexOf(value)], value));
+            }
         }
-    }
-    this.shuffle();
-    this.shuffle();
-}
-//korttipakan shuffle
+        this.shuffle();
+        this.shuffle();
+    };
 
-    // https://bost.ocks.org/mike/shuffle/
+    /* Shuffle the deck */
+    //https://bost.ocks.org/mike/shuffle/
     shuffle = () => {
         let m = this.deck.length, i;
         while (m) {
@@ -35,28 +34,27 @@ class Deck {
         }
         return this.deck;
     }
-    
-        
-//yksi kortti pakasta
-getCard = () => {
-    let card = this.deck.pop();
-    return {card : card.value + card.suit};
-}
 
-//korttien jako, 2 korttia pakasta
-dealCards = (amount) => {
-    let hand = [];
-    for(let i = 0; i < amount; i++) {
+
+    /* Pick one card from the deck */
+    getCard = () => {
         let card = this.deck.pop();
-        hand[i] = {card : card.value + card.suit};
-    }
- /*   while (amount > hand.length) {
-        let thecard = this.deck.pop();
-        hand.push(thecard);
-    } */
-    return hand;
+        return { card: card.value + card.suit };
+    };
+
+    /* Deal the cards (two cards) */
+    dealCards = (amount) => {
+        let hand = [];
+        for (let i = 0; i < amount; i++) {
+            let card = this.deck.pop();
+            hand[i] = { card: card.value + card.suit };
+        }
+        /*   while (amount > hand.length) {
+               let thecard = this.deck.pop();
+               hand.push(thecard);
+           } */
+        return hand;
+    };
 }
 
-}
-
-module.exports = {Deck};
+module.exports = { Deck };

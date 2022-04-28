@@ -5,8 +5,7 @@ class Controller {
 
     constructor(room, socketRoom) {
         this.room = room,
-        this.socket = socketRoom;
-
+            this.socket = socketRoom;
         this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
         this.turn = 0;
@@ -101,9 +100,50 @@ class Controller {
         }
     };
 
+    /* Handle Checking */
+    validateCheck(playerCount) {
+        let lastBet = 0;
+        let currentBet = this.roomData[this.getPlayerTurn()].player.getLastBet();
+
+        if (this.getPlayerTurn() == 0) {
+            lastBet = this.roomData[playerCount - 1].player.lastBet;
+        } else {
+            lastBet = this.roomData[this.getPlayerTurn() - 1].player.getLastBet();
+        }
+
+        if (currentBet >= lastBet) {
+            this.setPlayerTurn(1);
+            this.betround++;
+            if (this.betround == this.activePlayers - 1) {
+                this.betround = 0;
+                this.status = this.statuses[0];
+                this.next(this.statuses[0]);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    /* Handle Folding */
+    validateFold(playerCount) {
+        let winnerIndex = 0;
+
+        if (playerCount < 3) {
+            winnerIndex += 1;
+            this.roomData[winnerIndex].money += this.totalBet;
+            this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[winnerIndex].getPlayer().getName() + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
+            this.socket.emit('updatePlayer', this.roomData);
+            this.status = 'Pause';
+            this.next('Pause');
+        } else {
+            this.setPlayerTurn(1);
+        }
+    };
+
     /* Return current player turn */
     getPlayerTurn() {
-        return parseFloat(this.turn);
+        return parseInt(this.turn);
     };
 
     /* Set current player turn
@@ -218,7 +258,7 @@ class Controller {
                 // TBD
                 break;
         }
-    }
+    };
 }
 
 module.exports = { Controller }

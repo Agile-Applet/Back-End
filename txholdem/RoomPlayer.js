@@ -3,10 +3,11 @@ const { Player } = require("./Player");
 
 class RoomPlayer extends Player {
 
-    constructor(id, name, money, avatar, socketId, seatId, lastBet, role) {
+    constructor(id, name, money, avatar, socketId, seatId, betAmount, lastBet, role) {
         super(id, name, money, avatar);
         this.socketId = socketId;
         this.seatId = seatId;
+        this.betAmount = 0;
         this.lastBet = 0;
         this.hand = [],
         this.showHand = false;
@@ -18,7 +19,10 @@ class RoomPlayer extends Player {
     setSeat = (seatId) => this.seatId = seatId;
     getSeat = () => (this.seatId);
 
-    setLastBet = (amount) => {this.lastBet = amount};
+    setBetAmount = (amount) => { this.betAmount += amount };
+    getBetAmount = () => (this.betAmount);
+
+    setLastBet = (amount) => { this.lastBet = amount };
     getLastBet = () => (this.lastBet);
 
     setHand = (hand) => this.hand = hand;
@@ -29,7 +33,7 @@ class RoomPlayer extends Player {
 
     setShowHand = (status) => this.showHand = status;
     getHandStatus = () => (this.showHand);
- 
+
 }
 
 module.exports = { RoomPlayer }
