@@ -55,14 +55,14 @@ class Room {
       console.log("[Connect] User connected : " + socket.id);
       socket.on('disconnect', () => {
         console.log("[Disconnect] User disconnected");
-        const getUser = getUser(socket.id);
-        const deleteUser = deleteUser(socket.id);
-        if (deleteUser) {
-          if (this.roomData[getUser.seat].status != 0) {
+        const user = getUser(socket.id);
+        const delUser = deleteUser(socket.id);
+        if (delUser) {
+          if (this.roomData[user.seat].status != 0) {
             this.players--;
             console.log("[Disconnect] Current players: " + this.getPlayerCount() + " of " + this.maxPlayers);
           }
-          this.roomData[getUser.seat].resetSeat();
+          this.roomData[user.seat].resetSeat();
           this.room.in(deleteUser.room).emit('updatePlayer', this.roomData);
           if (this.getPlayerCount() === 0) {
             this.room.in(deleteUser.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
