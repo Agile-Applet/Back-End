@@ -69,7 +69,7 @@ class Controller {
         if (this.activePlayers < 3) {
             this.turn = 0;
             this.roomData[this.turn].setTurn(true);
-            this.socket.emit('resetTableCards', this.tableData);
+            this.socket.emit('updateTableCards', this.tableData);
             this.socket.emit('updatePlayer', this.roomData);
         }
         this.next('Start');
