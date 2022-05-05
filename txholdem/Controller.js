@@ -5,7 +5,7 @@ class Controller {
 
     constructor(room, socketRoom) {
         this.room = room,
-            this.socket = socketRoom;
+        this.socket = socketRoom;
         this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
         this.turn = 0;
@@ -42,10 +42,10 @@ class Controller {
 
         this.roomData.forEach(element => {
             let elementIndex = this.roomData.indexOf(element);
-            if (element.status === 0) {
-                seatStatus = 2;
-            } else {
+            if (element.status === 0) { // Description in seat class
                 seatStatus = element.status;
+            } else {
+                seatStatus = 2;
                 this.activePlayers++;
             }
             if (element.id === this.smallBlindTurn) {
@@ -64,6 +64,7 @@ class Controller {
             this.roomData[elementIndex].getPlayer().setRole(role);
             this.roomData[elementIndex].getPlayer().setHand(this.deck.dealCards(2));
             this.turn = elementIndex;
+            element.status === 2 ? this.socket.to(element.player.getSocketId()).emit("playerHand", this.roomData[elementIndex].getPlayer().getHand()) : null;
         });
         if (this.activePlayers < 3) {
             this.turn = 0;
@@ -200,8 +201,11 @@ class Controller {
             }
         });
         let winner = checkCards(data);
-        this.roomData[winner].money += this.totalBet;
+        this.announceWinner(winner);
+    };
 
+    announceWinner(winner) {
+        this.roomData[winner].money += this.totalBet;
         this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[winner].getPlayer().getName() + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
         this.socket.emit('updatePlayer', this.roomData);
         this.status = 'Pause';
@@ -232,15 +236,13 @@ class Controller {
                 break;
 
             case 'Flop':
-                this.tableData.push({ pot: this.totalBet, cards: this.deck.dealCards(5), status: this.status });
+                this.tableData.push({ pot: this.totalBet, cards: this.deck.dealCards(3), status: this.status });
                 this.turnChange();
                 break;
 
             case 'Turn':
-                this.turnChange();
-                break;
-
             case 'River':
+                this.tableData[0].cards.push(this.deck.getCard())
                 this.turnChange();
                 break;
 
