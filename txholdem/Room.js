@@ -63,14 +63,14 @@ class Room {
             console.log("[Disconnect] Current players: " + this.getPlayerCount() + " of " + this.maxPlayers);
           }
           this.roomData[user.seat].resetSeat();
-          this.room.in(deleteUser.room).emit('updatePlayer', this.roomData);
+          this.room.in(delUser.room).emit('updatePlayer', this.roomData);
           if (this.getPlayerCount() === 0) {
-            this.room.in(deleteUser.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
-            this.room.in(deleteUser.room).emit('syncGame', false);
+            this.room.in(delUser.room).emit('updateTableCards', [{ pot: 0.00, cards: [0], status: null }]);
+            this.room.in(delUser.room).emit('syncGame', false);
             this.roomData.forEach(seat => {
               this.roomData[this.roomData.indexOf(seat)].resetSeat();
             });
-            this.room.in(deleteUser.room).emit('updatePlayer', this.roomData);
+            this.room.in(delUser.room).emit('updatePlayer', this.roomData);
           }
         }
       });

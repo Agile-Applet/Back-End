@@ -13,7 +13,7 @@ const checkCards = (hands) => {
 
     hands.forEach(hand => {
         oneHand = [];
-        if (hand.getPlayer().getName() !== 'Free') {
+        if (hand.getStatus() === 2) {
             hand.getPlayer().getHand().forEach(card => {
                 oneHand.push(card.card);
             });
@@ -22,7 +22,6 @@ const checkCards = (hands) => {
             solvedHands.push(Hand.solve(oneHand));
         }
     });
-
     winner = Hand.winners(solvedHands);
 
     solvedHands.forEach(hand => {

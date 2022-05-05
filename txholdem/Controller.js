@@ -194,7 +194,7 @@ class Controller {
     /* Determine the winner */
     checkHands(data) {
         data.forEach(player => {
-            if (player.getPlayer().getName() !== 'Free') {
+            if (player.getStatus() === 2) {
                 this.tableData[0].cards.forEach(card => {
                     player.getPlayer().getHand().push(card);
                 });
