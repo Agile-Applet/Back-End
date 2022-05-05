@@ -4,7 +4,7 @@ class Seat {
 
     constructor(id, status) {
         this.id = id;
-        this.status = status;
+        this.status = status; // 0 = free, 1 = waiting, 2 = playing
         this.label = "Free";
         this.player = new RoomPlayer(0, "Tuntematon", 0, "", "", id, 0, "")
         this.hasTurn = false;
@@ -30,6 +30,7 @@ class Seat {
     }
 
     resetSeat = () => {
+        this.label = 'Free';
         this.status = 0;
         this.player = new RoomPlayer(0, "Tuntematon", 0, "", "", this.id, 0, "")
     }
