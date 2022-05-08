@@ -5,14 +5,17 @@ class Controller {
 
     constructor(room, socketRoom) {
         this.room = room,
-        this.socket = socketRoom;
+            this.socket = socketRoom;
         this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
         this.turn = 0;
+        this.firstActiveIndex = 0;
+        this.turnGiven = 0;
         this.totalBet = 0;
         this.activePlayers = 0;
         this.smallBlindTurn = -1;
         this.bigBlindTurn = 0;
+        this.blindsGiven = 0;
         this.roomData = [];
         this.tableData = [];
         this.statuses = ['Flop', 'Turn', 'River', 'Check'];
@@ -29,6 +32,7 @@ class Controller {
         this.activePlayers = 0;
         this.smallBlindTurn++;
         this.bigBlindTurn++;
+        this.blindsGiven = 0;
         let role = '';
         let seatStatus = 0;
         let lastBet = 0;
@@ -48,26 +52,31 @@ class Controller {
                 seatStatus = 2;
                 this.activePlayers++;
             }
-            if (element.id === this.smallBlindTurn) {
+            this.roomData[elementIndex].setStatus(seatStatus);
+            if (this.blindsGiven == 0 && this.roomData[elementIndex].status == 2) {
                 role = ' (S)';
                 lastBet = 50;
-            } else if (element.id === this.bigBlindTurn) {
+                this.blindsGiven++;
+            } else if (this.blindsGiven == 1 && this.roomData[elementIndex].status == 2) {
                 role = ' (B)';
                 lastBet = 100;
+                this.blindsGiven++;
             } else {
                 role = '';
                 lastBet = 0;
             }
-            this.roomData[elementIndex].setStatus(seatStatus);
             this.roomData[elementIndex].getPlayer().deductMoney(lastBet);
             this.roomData[elementIndex].getPlayer().setLastBet(lastBet);
             this.roomData[elementIndex].getPlayer().setRole(role);
             this.roomData[elementIndex].getPlayer().setHand(this.deck.dealCards(2));
-            this.turn = elementIndex;
+            if (this.roomData[elementIndex].status == 2 && this.turnGiven == 0) {
+                this.turn = elementIndex;
+                this.firstActiveIndex = elementIndex;
+                this.turnGiven++;
+            }
             element.status === 2 ? this.socket.to(element.player.getSocketId()).emit("playerHand", this.roomData[elementIndex].getPlayer().getHand()) : null;
         });
         if (this.activePlayers < 3) {
-            this.turn = 0;
             this.roomData[this.turn].setTurn(true);
             this.socket.emit('updateTableCards', this.tableData);
             this.socket.emit('updatePlayer', this.roomData);
@@ -77,13 +86,14 @@ class Controller {
 
     /* Handle Betting */
     checkBet(bet, index) {
+
         if (index == 0) {
             index++;
         } else {
             index--;
         }
         /* Check that current player bets enough */
-        if (bet == this.roomData[index].getPlayer().getLastBet()) {
+        if (bet == this.roomData[this.turn + 1].getPlayer().getLastBet()) {
             this.setPlayerTurn(1);
             this.betround++;
             if (this.betround == this.activePlayers - 1) {
@@ -92,7 +102,7 @@ class Controller {
                 this.next(this.statuses[0]);
             }
             return true;
-        } else if (bet > this.roomData[index].getPlayer().getLastBet()) {
+        } else if (bet > this.roomData[this.turn].getPlayer().getLastBet()) {
             this.setPlayerTurn(1);
             this.betround = 0;
             return true;
@@ -152,8 +162,8 @@ class Controller {
   */
     setPlayerTurn(data) {
         this.turn += data;
-        if (this.turn == this.activePlayers) {
-            this.turn = 0;
+        if (this.turn > this.activePlayers) {
+            this.turn = this.firstActiveIndex;
         }
         this.roomData.forEach(element => {
             if (this.turn == element.id) {
@@ -205,8 +215,8 @@ class Controller {
     };
 
     announceWinner(winner) {
-        this.roomData[winner].money += this.totalBet;
-        this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[winner].getPlayer().getName() + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
+        this.roomData[winner.split("=")[0]].money += this.totalBet;
+        this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[winner.split("=")[0]].getPlayer().getName() + " voitti (" + winner.split("=")[1] + ") " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
         this.socket.emit('updatePlayer', this.roomData);
         this.status = 'Pause';
         this.next('Pause');

@@ -3,9 +3,9 @@ const { Player } = require("./Player");
 
 class RoomPlayer extends Player {
 
-        // Private attributes
-        #hand = [];
-        #socketId;
+    // Private attributes
+    #hand = [];
+    #socketId;
 
     constructor(id, name, money, avatar, socketId, seatId, role) {
         super(id, name, money, avatar);
@@ -17,7 +17,7 @@ class RoomPlayer extends Player {
         this.role = role;
     }
 
-    getSocketId() {return this.#socketId};
+    getSocketId() { return this.#socketId };
 
     setSeat = (seatId) => this.seatId = seatId;
     getSeat = () => (this.seatId);

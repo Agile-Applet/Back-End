@@ -6,7 +6,7 @@ class Deck {
         this.resetDeck();
         this.shuffle();
     }
-    
+
     /* Make a new deck  (S = pata, C = risti, D = ruutu, H = hertta) */
     resetDeck = () => {
         this.deck = [];

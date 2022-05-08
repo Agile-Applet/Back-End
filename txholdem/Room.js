@@ -91,7 +91,7 @@ class Room {
           if (this.roomData[seat].status === 0) {
             const user = getUser(socket.id);
             // Threw error when more than one window open with same user
-            if(typeof(user) === 'undefined') return socket.emit('userError', { action: 'join_seat', status: 'failed', message: "Et voi liittyä tällä hetkellä." });
+            if (typeof (user) === 'undefined') return socket.emit('userError', { action: 'join_seat', status: 'failed', message: "Et voi liittyä tällä hetkellä." });
 
             if (user.seat && user.seat != 0) {
               return socket.emit('userError', { action: 'join_seat', status: 'failed', message: "Olet jo toisella pöytäpaikalla." });

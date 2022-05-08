@@ -16,7 +16,7 @@ const addUser = (id, name, seat, room) => {
 
 const updateUser = (name, seat, room) => {
     const existingUser = users.find(user => user.name.trim().toLowerCase() === name.trim().toLowerCase());
-    if ( existingUser ) {
+    if (existingUser) {
         existingUser.seat = seat;
         existingUser.room = room;
     }
