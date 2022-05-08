@@ -9,11 +9,13 @@ const getRandomInt = (max) => {
 const checkCards = (hands) => {
     let solvedHands = [];
     let oneHand = [];
-    let winner = [];
+    let winner;
+    let players = [];
 
     hands.forEach(hand => {
         oneHand = [];
         if (hand.getStatus() === 2) {
+            players.push(hand);
             hand.getPlayer().getHand().forEach(card => {
                 oneHand.push(card.card);
             });
@@ -26,7 +28,8 @@ const checkCards = (hands) => {
 
     solvedHands.forEach(hand => {
         if (winner[0] && hand.cards === winner[0].cards) {
-            winner = solvedHands.indexOf(hand);
+            let winner_index = solvedHands.indexOf(hand);
+            winner = players[winner_index].getId();
         }
     });
 

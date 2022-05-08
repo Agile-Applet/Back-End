@@ -8,7 +8,7 @@ class Controller {
         this.socket = socketRoom;
         this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
-        this.turn = 0;
+        this.turn = -1;
         this.totalBet = 0;
         this.activePlayers = 0;
         this.smallBlindTurn = -1;
@@ -62,16 +62,17 @@ class Controller {
             this.roomData[elementIndex].getPlayer().deductMoney(lastBet);
             this.roomData[elementIndex].getPlayer().setLastBet(lastBet);
             this.roomData[elementIndex].getPlayer().setRole(role);
-            this.roomData[elementIndex].getPlayer().setHand(this.deck.dealCards(2));
+            element.status === 2 ? this.roomData[elementIndex].getPlayer().setHand(this.deck.dealCards(2)) : null;
             this.turn = elementIndex;
             element.status === 2 ? this.socket.to(element.player.getSocketId()).emit("playerHand", this.roomData[elementIndex].getPlayer().getHand()) : null;
         });
         if (this.activePlayers < 3) {
             this.turn = 0;
-            this.roomData[this.turn].setTurn(true);
-            this.socket.emit('updateTableCards', this.tableData);
+            // this.roomData[this.turn].setTurn(true);
             this.socket.emit('updatePlayer', this.roomData);
         }
+        this.socket.emit('updateTableCards', this.tableData);
+        this.setPlayerTurn();
         this.next('Start');
     };
 
@@ -84,7 +85,7 @@ class Controller {
         }
         /* Check that current player bets enough */
         if (bet == this.roomData[index].getPlayer().getLastBet()) {
-            this.setPlayerTurn(1);
+            this.setPlayerTurn();
             this.betround++;
             if (this.betround == this.activePlayers - 1) {
                 this.betround = 0;
@@ -93,7 +94,7 @@ class Controller {
             }
             return true;
         } else if (bet > this.roomData[index].getPlayer().getLastBet()) {
-            this.setPlayerTurn(1);
+            this.setPlayerTurn();
             this.betround = 0;
             return true;
         } else {
@@ -113,7 +114,7 @@ class Controller {
         }
 
         if (currentBet >= lastBet) {
-            this.setPlayerTurn(1);
+            this.setPlayerTurn();
             this.betround++;
             if (this.betround == this.activePlayers - 1) {
                 this.betround = 0;
@@ -138,7 +139,7 @@ class Controller {
             this.status = 'Pause';
             this.next('Pause');
         } else {
-            this.setPlayerTurn(1);
+            this.setPlayerTurn();
         }
     };
 
@@ -150,19 +151,27 @@ class Controller {
     /* Set current player turn
      - Updates the front regularly and ensures that the current turn is seen
   */
-    setPlayerTurn(data) {
-        this.turn += data;
-        if (this.turn == this.activePlayers) {
+    setPlayerTurn() {
+        this.turn += 1;
+        if (this.turn < 0 || this.turn == 6) {
             this.turn = 0;
         }
-        this.roomData.forEach(element => {
-            if (this.turn == element.id) {
-                this.roomData[element.id].setTurn(true);
-            } else {
-                this.roomData[element.id].setTurn(false);
-            }
-            this.socket.emit('updatePlayer', this.roomData)
-        })
+
+        if (this.roomData[this.turn].getStatus() != 2) {
+            this.setPlayerTurn()
+        }else if(this.activePlayers === 0){
+            this.turn = -1;
+        }else{
+            this.roomData.forEach(element => {
+                if (this.turn == element.id) {
+                    this.roomData[element.id].setTurn(true);
+                } else {
+                    this.roomData[element.id].setTurn(false);
+                }
+                this.socket.emit('updatePlayer', this.roomData)
+            })
+         }
+
     };
 
     /* Return current game status */
