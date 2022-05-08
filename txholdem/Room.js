@@ -1,5 +1,5 @@
 /* Texas Holdem Game Room implemented with Socket.io. */
-const { getRandomInt, validateCheck } = require("./utils/roundhelpers");
+const { getRandomInt } = require("./utils/roundhelpers");
 const { addUser, updateUser, getUser, deleteUser } = require("../user/users");
 const { Controller } = require("./Controller");
 const { depositGameFunds } = require("../txholdem/utils/depositGameFunds");

@@ -40,15 +40,16 @@ Back-End side of the Casino Platform @ Haaga-Helia Project course 2.
 +---txholdem #Different classes related to Texas Holdem and Controller to manage the game flow
 |   |   Card.js
 |   |   Controller.js
+|   |   Deck.js
 |   |   Player.js
 |   |   Room.js
 |   |   RoomPlayer.js
 |   |   Round.js
+|   |   Seat.js
 |   |   
 |   \---utils #Helper functions e.g, deal cards and validate player actions
-|           helpers.js
+|           depositGameFunds.js
 |           roundhelpers.js
-|           validation.js
 |           
 \---user #Authenticate users at login/register and establish session
         auth.js
@@ -100,7 +101,9 @@ Back-End side of the Casino Platform @ Haaga-Helia Project course 2.
 
 ## Roadmap
 
-- Handle chat messages and game notifications, which are delivered by socket.io.
+- Handling chat messages and game notifications, which are delivered by socket.io.
+- Handling "leave queue".
+- Updating money transactions to the database, which are related to Texas Holdem (buy-in, leaving the table and buying more chips).
 
 
 ## Environment Variables
