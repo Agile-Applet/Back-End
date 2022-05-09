@@ -1,35 +1,42 @@
 /* Texas Holdem Player */
 const { Player } = require("./Player");
-const { getHandPosition } = require('./utils/helpers');
-
-//{ ...this.playerData[usr.seat], playerName: "Free Seat", seatStatus: 0, money: 0, lastBet: 0, hand: [], showHand: false, avatar: '' };
 
 class RoomPlayer extends Player {
 
-    constructor(id, name, money, avatar, socketId, seatId, lastBet) {
+    // Private attributes
+    #hand = [];
+    #socketId;
+
+    constructor(id, name, money, avatar, socketId, seatId, role) {
         super(id, name, money, avatar);
-        this.socketId = socketId;
+        this.#socketId = socketId;
         this.seatId = seatId;
+        this.betAmount = 0;
         this.lastBet = 0;
-        this.hand = [],
         this.showHand = false;
-        this.handPosition = getHandPosition(seatId);
+        this.role = role;
     }
 
-    getSocketId = () => (this.socketId);
+    getSocketId() { return this.#socketId };
 
-    setSeat = (seatId) => this.seatId(seatId);
+    setSeat = (seatId) => this.seatId = seatId;
     getSeat = () => (this.seatId);
 
-    setLastbet = (amount) => this.lastBet(amount);
-    getLastbet = () => (this.lastBet);
+    setBetAmount = (amount) => { this.betAmount += amount };
+    getBetAmount = () => (this.betAmount);
 
-    setHand = (hand) => this.hand(hand);
-    getHand = () => (this.hand);
+    setLastBet = (amount) => { this.lastBet = amount };
+    getLastBet = () => (this.lastBet);
 
-    setShowHand = (status) => this.showHand(status);
+    setHand = (hand) => this.#hand = hand;
+    getHand() { return this.#hand };
+
+    setRole = (role) => this.role = role;
+    getRole = () => (this.role);
+
+    setShowHand = (status) => this.showHand = status;
     getHandStatus = () => (this.showHand);
- 
+
 }
 
 module.exports = { RoomPlayer }

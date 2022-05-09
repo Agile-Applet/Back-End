@@ -1,106 +1,119 @@
-const { dealCards, checkCards, removeCards, createDeck } = require("./utils/roundhelpers");
-const { getRandomInt } = require("./utils/helpers");
+const { Deck } = require("./Deck");
+const { checkCards } = require("./utils/roundhelpers");
 
 class Controller {
 
     constructor(room, socketRoom) {
         this.room = room,
             this.socket = socketRoom;
-
         this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
         this.turn = 0;
+        this.firstActiveIndex = 0;
         this.totalBet = 0;
+        this.currentBet = 0;
         this.activePlayers = 0;
-        this.smallBlindTurn = -1;
-        this.bigBlindTurn = 0;
-        this.playerData = [];
+        this.roomData = [];
         this.tableData = [];
         this.statuses = ['Flop', 'Turn', 'River', 'Check'];
+        this.deck = new Deck();
     }
 
     /* Start a new game */
     startGame = (data) => {
         this.status = "Start";
-        this.playerData = data;
+        this.roomData = data;
         this.tableData = [];
         this.statuses = ['Flop', 'Turn', 'River', 'Check'];
         this.totalBet = 0;
+        this.currentBet = 100; // same than big blind
         this.activePlayers = 0;
-        this.smallBlindTurn++;
-        this.bigBlindTurn++;
-        let role = '';
         let seatStatus = 0;
-        let lastBet = 0;
+        this.deck.resetDeck();
 
-        if (this.smallBlindTurn === this.room.getPlayerCount()) {
-            this.smallBlindTurn = 0;
-        } else if (this.bigBlindTurn === this.room.getPlayerCount()) {
-            this.bigBlindTurn = 0;
-        }
+        this.roomData.forEach(element => {
+            let elementIndex = this.roomData.indexOf(element);
 
-        this.playerData.forEach(element => {
-            if (element.playerName === 'Free') {
-                seatStatus = 2;
+            if (element.status === 0) { // Description in seat class
+                seatStatus = element.status;
             } else {
-                seatStatus = element.seatStatus;
+                seatStatus = 2;
                 this.activePlayers++;
             }
-            if (element.playerId === this.smallBlindTurn) {
-                role = ' (S)';
-                lastBet = 50;
-            } else if (element.playerId === this.bigBlindTurn) {
-                role = ' (B)';
-                lastBet = 100;
-            } else {
-                role = '';
-                lastBet = 0;
-            }
-            this.playerData[this.playerData.indexOf(element)] = {
-                playerId: element.playerId, playerName: element.playerName, seatStatus: seatStatus, money: element.money - lastBet,
-                lastBet: lastBet, hand: dealCards(0, 'player'), showHand: false, avatar: element.avatar, handPosition: element.handPosition, role: role
-            }
-            this.turn = this.playerData.indexOf(element);
-            removeCards(0);
+            this.roomData[elementIndex].setStatus(seatStatus);
+            this.roomData[elementIndex].getPlayer().setRole('');
+            this.roomData[elementIndex].getPlayer().setLastBet(0);
+            this.roomData[elementIndex].setTurn(false);
+            this.roomData[elementIndex].getPlayer().setHand(this.deck.dealCards(2));
+            element.status === 2 ? this.socket.to(element.player.getSocketId()).emit("playerHand", this.roomData[elementIndex].getPlayer().getHand()) : null;
         });
-        if (this.activePlayers < 3) {
-            this.turn = 0;
-            this.playerData[this.turn] = ({ ...this.playerData[this.turn], hasTurn: true });
-            this.socket.emit('resetTableCards', this.tableData);
-            this.socket.emit('updatePlayer', this.playerData);
-        }
+        this.setStartPlayer();
+        this.roomData[this.turn].setTurn(true);
+        this.socket.emit('resetTableCards', this.tableData);
+        this.socket.emit('updatePlayer', this.roomData);
         this.next('Start');
     };
 
-    /* Handle Betting */
-    checkBet(bet, index) {
-        if (index == 0) {
+    setStartPlayer() {
+        let playerSelected = false;
+        let index = this.firstActiveIndex;
+
+        while (!playerSelected) {
             index++;
-        } else {
-            index--;
-        }
-        /* Check that current player bets enough */
-        if (bet == this.playerData[index].lastBet) {
-            this.setPlayerTurn(1);
-            this.betround++;
-            if (this.betround == this.activePlayers - 1) {
-                this.betround = 0;
-                this.status = this.statuses[0];
-                this.next(this.statuses[0]);
+            if (index >= 6) index = 0;
+            if (this.roomData[index].getStatus() === 2) {
+                this.turn = index;
+                this.firstActiveIndex = index;
+                playerSelected = true;
             }
-            return true;
-        } else if (bet > this.playerData[index].lastBet) {
-            this.setPlayerTurn(1);
-            this.betround = 0;
-            return true;
-        } else {
-            return false;
         }
+
+        let rolesAdded = false;
+        let bigBlindSet = false;
+        while (!rolesAdded) {
+            --index;
+            if (index < 0) index = 5;
+
+            if (this.roomData[index].getStatus() === 2) {
+                if (!bigBlindSet) {
+                    this.roomData[index].getPlayer().setRole(' (B)');
+                    this.roomData[index].getPlayer().deductMoney(100);
+                    this.roomData[index].getPlayer().setLastBet(100);
+                    bigBlindSet = true;
+                } else {
+                    this.roomData[index].getPlayer().setRole(' (S)');
+                    this.roomData[index].getPlayer().deductMoney(50);
+                    this.roomData[index].getPlayer().setLastBet(50);
+                    rolesAdded = true;
+                }
+            }
+        }
+    }
+
+    /* Handle Betting */
+    handleBet(bet) {
+        this.currentBet = bet;
+        this.betround = 1;
+        this.setPlayerTurn(1);
+        return true;
+    };
+
+    /* Handle Checking */
+    handleCheck() {
+        this.betround++;
+        this.setPlayerTurn(1);
+    };
+
+    /* Handle Folding */
+    handleFold(player) {
+        player.setStatus(1);
+        this.activePlayers--;
+        this.setPlayerTurn(1);
     };
 
     /* Return current player turn */
     getPlayerTurn() {
-        return parseFloat(this.turn);
+        return parseInt(this.turn);
     };
 
     /* Set current player turn
@@ -108,17 +121,36 @@ class Controller {
   */
     setPlayerTurn(data) {
         this.turn += data;
-        if (this.turn == this.activePlayers) {
+
+        if (this.turn >= 6) { // start from 0 when out of bounds
             this.turn = 0;
         }
-        this.playerData.forEach(player => {
-            if (this.turn == player.playerId) {
-                this.playerData[player.playerId] = ({ ...this.playerData[player.playerId], hasTurn: true });
+
+        if (this.betround == this.activePlayers) { // if all have pressed bet/check/call/fold
+            this.betround = 0;
+            this.status = this.statuses[0];
+            this.next(this.statuses[0]);
+        }
+
+        if (this.roomData[this.turn].getStatus() === 2) {
+            if (this.activePlayers === 1) { // if all except one fold
+                this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[this.turn].getPlayer().getName() + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
+                this.status = 'Pause';
+                this.next('Pause');
             } else {
-                this.playerData[player.playerId] = ({ ...this.playerData[player.playerId], hasTurn: false });
+                this.roomData.forEach(element => {
+                    if (this.turn == element.id) {
+                        this.roomData[element.id].setTurn(true);
+                    } else {
+                        this.roomData[element.id].setTurn(false);
+                    }
+                    this.socket.emit('updatePlayer', this.roomData)
+                })
             }
-            this.socket.emit('updatePlayer', this.playerData)
-        })
+        } else {
+            // if seat empty or player waiting next game
+            this.setPlayerTurn(1);
+        }
     };
 
     /* Return current game status */
@@ -138,10 +170,11 @@ class Controller {
 
     /* Handle Flop Round */
     turnChange() {
-        this.totalBet = 50;
+        this.currentBet = 0;
         this.statuses.splice(0, 1);
-        this.playerData.forEach(element => {
-            this.totalBet += element.lastBet;
+        this.roomData.forEach(element => {
+            this.totalBet += element.getPlayer().getLastBet();
+            element.getPlayer().setLastBet(0);
         });
         this.tableData[0] = { pot: this.totalBet, cards: this.tableData[0].cards, status: this.status };
         this.socket.emit('updateTableCards', this.tableData);
@@ -150,28 +183,38 @@ class Controller {
     /* Determine the winner */
     checkHands(data) {
         data.forEach(player => {
-            if (player.playerName !== 'Free') {
+            if (player.getStatus() === 2) {
                 this.tableData[0].cards.forEach(card => {
-                    player.hand.push(card);
+                    player.getPlayer().getHand().push(card);
                 });
             }
         });
-        let winner = checkCards(data);
-        this.playerData[winner].money += this.totalBet;
+        let winners = checkCards(data);
+        this.announceWinner(winners);
+    };
 
-        this.socket.emit('userError', { action: "end_game", status: "success", message: this.playerData[winner].playerName + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
-        this.socket.emit('updatePlayer', this.playerData);
+    announceWinner(winners) {
+        let message = '';
+        winners.forEach(winner => {
+            this.roomData[winner.split("=")[0]].player.money += this.totalBet / winners.length;
+            message += this.roomData[winner.split("=")[0]].getPlayer().getName() + ", ";
+        });
+
+        if (winners.length < 2) {
+            this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[winners[0].split("=")[0]].getPlayer().getName() + " voitti (" + winners[0].split("=")[1] + ") " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
+        } else {
+            this.socket.emit('userError', { action: "end_game", status: "success", message: message + " voittivat (" + winners[0].split("=")[1] + ") " + this.totalBet / winners.length + " €! Uusi peli alkaa hetken kuluttua." });
+        }
+        this.socket.emit('updatePlayer', this.roomData);
         this.status = 'Pause';
         this.next('Pause');
     };
 
     pauseGame = () => {
-        /* TBD */
         setTimeout(() => {
             this.smallBlindTurn = -1;
             this.bigBlindTurn = 0;
-            createDeck();
-            this.startGame(this.playerData);
+            this.startGame(this.roomData);
         }, 5000);
     };
 
@@ -190,33 +233,29 @@ class Controller {
                 break;
 
             case 'Flop':
-                this.tableData.push({ pot: this.totalBet, cards: dealCards(0, 'dealer'), status: this.status });
+                this.tableData.push({ pot: this.totalBet, cards: this.deck.dealCards(3), status: this.status });
                 this.turnChange();
                 break;
 
             case 'Turn':
-                this.turnChange();
-                break;
-
             case 'River':
+                this.tableData[0].cards.push(this.deck.getCard())
                 this.turnChange();
                 break;
 
             case 'Check':
                 this.turnChange();
-                this.checkHands(this.playerData);
+                this.checkHands(this.roomData);
                 break;
 
             case 'Pause':
-                // TBD
                 this.pauseGame();
                 break;
 
             default:
-                // TBD
                 break;
         }
-    }
+    };
 }
 
 module.exports = { Controller }
