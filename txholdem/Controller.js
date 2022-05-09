@@ -14,8 +14,6 @@ class Controller {
         this.totalBet = 0;
         this.currentBet = 0;
         this.activePlayers = 0;
-        this.smallBlindTurn = -1;
-        this.bigBlindTurn = 0;
         this.blindsGiven = 0;
         this.roomData = [];
         this.tableData = [];
@@ -32,19 +30,9 @@ class Controller {
         this.totalBet = 0;
         this.currentBet = 100; // same than big blind
         this.activePlayers = 0;
-        this.smallBlindTurn++;
-        this.bigBlindTurn++;
         this.blindsGiven = 0; // ? 
-        let role = '';
         let seatStatus = 0;
-        let lastBet = 0;
         this.deck.resetDeck();
-
-        if (this.smallBlindTurn === this.room.getPlayerCount()) {
-            this.smallBlindTurn = 0;
-        } else if (this.bigBlindTurn === this.room.getPlayerCount()) {
-            this.bigBlindTurn = 0;
-        }
 
         this.roomData.forEach(element => {
             let elementIndex = this.roomData.indexOf(element);
@@ -55,33 +43,14 @@ class Controller {
                 this.activePlayers++;
             }
             this.roomData[elementIndex].setStatus(seatStatus);
-            if (this.blindsGiven == 0 && this.roomData[elementIndex].status == 2) {
-                role = ' (S)';
-                lastBet = 50;
-                this.blindsGiven++;
-            } else if (this.blindsGiven == 1 && this.roomData[elementIndex].status == 2) {
-                role = ' (B)';
-                lastBet = 100;
-                this.blindsGiven++;
-            } else {
-                role = '';
-                lastBet = 0;
-            }
-            this.roomData[elementIndex].getPlayer().deductMoney(lastBet);
-            this.roomData[elementIndex].getPlayer().setLastBet(lastBet);
-            this.roomData[elementIndex].getPlayer().setRole(role);
+            this.roomData[elementIndex].getPlayer().setRole('');
+            this.roomData[elementIndex].getPlayer().setLastBet(0);
+            this.roomData[elementIndex].setTurn(false);
             this.roomData[elementIndex].getPlayer().setHand(this.deck.dealCards(2));
-            console.log(this.roomData[elementIndex].status == 2 && this.turnGiven == 0)
-            console.log(elementIndex)
-            console.log("seatStatus: " + this.roomData[elementIndex].status)
-            console.log("turn:" )
-            if (this.roomData[elementIndex].status == 2 && this.turnGiven == 0) {
-                this.turn = elementIndex;
-                this.firstActiveIndex = elementIndex;
-                this.turnGiven++;
-            }
             element.status === 2 ? this.socket.to(element.player.getSocketId()).emit("playerHand", this.roomData[elementIndex].getPlayer().getHand()) : null;
         });
+            this.setStartPlayer();
+
             this.roomData[this.turn].setTurn(true);
             this.socket.emit('resetTableCards', this.tableData);
             this.socket.emit('updatePlayer', this.roomData);
@@ -89,6 +58,41 @@ class Controller {
 
         this.next('Start');
     };
+
+    setStartPlayer() {
+        let playerSelected = false;
+        let index = this.firstActiveIndex;
+        while(!playerSelected){
+            index++;
+            if (index >= 6) index = 0;
+            if (this.roomData[index].getStatus() === 2){
+                this.turn = index;
+                this.firstActiveIndex = index;
+                playerSelected = true;
+            }
+        }
+
+        let rolesAdded = false;
+        let bigBlindSet = false;
+        while(!rolesAdded){
+            --index;
+            if (index < 0) index = 5;
+
+            if (this.roomData[index].getStatus() === 2){
+                if (!bigBlindSet){
+                    this.roomData[index].getPlayer().setRole(' (B)');
+                    this.roomData[index].getPlayer().deductMoney(100);
+                    this.roomData[index].getPlayer().setLastBet(100);
+                    bigBlindSet = true;
+                }else{
+                    this.roomData[index].getPlayer().setRole(' (S)');
+                    this.roomData[index].getPlayer().deductMoney(50);
+                    this.roomData[index].getPlayer().setLastBet(50);
+                    rolesAdded = true;
+                }
+            }
+        }
+    }
 
     /* Handle Betting */
     handleBet(bet) {    
