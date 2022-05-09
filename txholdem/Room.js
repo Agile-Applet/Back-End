@@ -57,6 +57,10 @@ class Room {
         const delUser = deleteUser(socket.id);
         if (delUser) {
           if (this.roomData[user.seat].status != 0) {
+            if (user.seat == this.controller.getPlayerTurn()) {
+              this.controller.activePlayers--;
+              this.controller.setPlayerTurn(1);
+            }
             this.players--;
             console.log("[Disconnect] Current players: " + this.getPlayerCount() + " of " + this.maxPlayers);
           }
@@ -119,6 +123,10 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (1 == 1) {
+          if (user.seat == this.controller.getPlayerTurn()) {
+            this.controller.activePlayers--;
+            this.controller.setPlayerTurn(1);
+          }
           this.roomData[seat].resetSeat();
           updateUser(user.name, 0, user.room);
           this.players--;
