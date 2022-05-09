@@ -5,7 +5,7 @@ class Controller {
 
     constructor(room, socketRoom) {
         this.room = room,
-            this.socket = socketRoom;
+        this.socket = socketRoom;
         this.status = 'Pause'; // Pause, Start, Bet, Turn, River, Show, End
         this.betround = 0;
         this.turn = 0;
@@ -151,6 +151,19 @@ class Controller {
         } else{ // if seat empty or player waiting next game
             this.setPlayerTurn(1);
         }
+
+        let me = this;
+        setTimeout(function(turnNo) {
+            /* Player Turn timeout in 15 seconds */
+            console.log("Timeout!!!");
+            if ( me.turn === turnNo ) {
+                console.log("### FOLD ####");
+                me.handleFold(me.roomData[turnNo]);
+            } else {
+                console.log("No turn anymore, so no fold..");
+            }
+        }, 15000, me.turn);
+
     };
 
     /* Return current game status */
