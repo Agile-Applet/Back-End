@@ -101,7 +101,7 @@ class Room {
             this.players++;
             updateUser(user.name, seat, user.room);
             this.roomData[seat].reserveSeat(user.name);
-            this.roomData[seat].setPlayer(new RoomPlayer(seat, user.name, data.amount, avatars[getRandomInt(5)], socket.id, seat, 0, ""));
+            this.roomData[seat].setPlayer(new RoomPlayer(seat, user.name, data.amount, avatars[getRandomInt(5)], socket.id, seat, "", ""));
             if (this.getPlayerCount() === 1) {
             } else if (this.getPlayerCount() === 2) {
               this.controller.startGame(this.roomData);
