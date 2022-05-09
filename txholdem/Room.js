@@ -180,7 +180,7 @@ class Room {
           if (this.roomData[seat].getPlayer().getMoney() >= data.betAmount && data.betAmount > this.controller.currentBet) { // if data.betAmount === this.roomData[seat].getPlayer().getMoney() - player = all-in
               this.controller.handleBet(data.betAmount)
               this.roomData[seat].getPlayer().deductMoney(data.betAmount);
-              this.roomData[seat].getPlayer().setBetAmount(data.betAmount);
+              this.roomData[seat].getPlayer().setLastBet(data.betAmount);
               this.room.in(user.room).emit('updatePlayer', this.roomData);
           } else {
             console.log("[Bet] Wrong amount.");
