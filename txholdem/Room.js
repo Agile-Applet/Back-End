@@ -16,7 +16,6 @@ const avatars = [
 ];
 
 class Room {
-
   constructor(io, uri, name, description, minBuy, maxBuy) {
 
     this.name = name;
@@ -24,7 +23,6 @@ class Room {
     this.uri = uri;
     this.minBuy = minBuy;
     this.maxBuy = maxBuy;
-
     this.players = 0;
     this.maxPlayers = 6;
     this.socket = null;
@@ -145,9 +143,8 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.getPlayerTurn()) {
-          this.roomData[seat].getPlayer().setShowHand(false);
+          this.controller.handleFold(this.roomData[seat]);
           this.room.in(user.room).emit('updatePlayer', this.roomData);
-          this.controller.validateFold(this.getPlayerCount());
         } else {
           console.log("[Fold] Player is not authorized to execute this action right now.");
           return socket.emit('userError', { action: 'fold_hand', status: 'failed', message: "Et ole tällä hetkellä vuorossa." });
@@ -159,12 +156,13 @@ class Room {
         let seat = user.seat;
 
         if (seat == this.controller.getPlayerTurn()) {
-          let canCheck = this.controller.validateCheck(this.getPlayerCount());
-          if (canCheck) {
-            this.roomData[seat].player.setLastBet(0);
+          if (this.controller.currentBet !== 0) { // TBD: if player is poor = all-in + call(amount) button instead check in frontend
+            let reduceAmount = this.controller.currentBet - this.roomData[seat].getPlayer().getLastBet()
+            this.roomData[seat].getPlayer().deductMoney(reduceAmount);
+            this.roomData[seat].getPlayer().setLastBet(this.controller.currentBet);
+            this.controller.handleCheck();
           } else {
-            console.log("[Check] Player is not authorized to execute this action right now.");
-            return socket.emit('userError', { action: 'check', status: 'failed', message: "Et voi tällä hetkellä ohittaa vuoroasi." });
+            this.controller.handleCheck();
           }
         } else {
           console.log("[Check] Player is not authorized to execute this action right now.");
@@ -176,16 +174,16 @@ class Room {
         const user = getUser(socket.id);
         let seat = user.seat;
         if (seat == this.controller.getPlayerTurn()) {
-          const bet = this.roomData[seat].getPlayer().lastBet + data.betAmount;
-          if (this.roomData[seat].getPlayer().getMoney() >= data.betAmount) {
-            if (this.controller.checkBet(bet, parseInt(seat))) {
-              this.roomData[seat].getPlayer().deductMoney(data.betAmount);
-              this.roomData[seat].getPlayer().setBetAmount(data.betAmount);
-              this.room.in(user.room).emit('updatePlayer', this.roomData);
-            }
+          //const bet = this.roomData[seat].getPlayer().lastBet + data.betAmount;
+          if (this.roomData[seat].getPlayer().getMoney() >= data.betAmount && data.betAmount > this.controller.currentBet) { // if data.betAmount === this.roomData[seat].getPlayer().getMoney() - player = all-in
+            this.controller.handleBet(data.betAmount)
+            this.roomData[seat].getPlayer().deductMoney(data.betAmount);
+            this.roomData[seat].getPlayer().setLastBet(data.betAmount);
+            this.room.in(user.room).emit('updatePlayer', this.roomData);
           } else {
             console.log("[Bet] Wrong amount.");
-            return socket.emit('userError', { action: 'bet_hand', status: 'failed', message: "Tarkista panostus." });
+            let minBet = this.controller.currentBet + 1;
+            return socket.emit('userError', { action: 'bet_hand', status: 'failed', message: "Tarkista panostus. Panoksen pitää olla vähintään " + minBet });
           }
         } else {
           console.log("[Bet] Player is not authorized to execute this action right now.");

@@ -9,7 +9,8 @@ const getRandomInt = (max) => {
 const checkCards = (hands) => {
     let solvedHands = [];
     let oneHand = [];
-    let winner;
+    let winners;
+    let winner_info = [];
     let players = [];
 
     hands.forEach(hand => {
@@ -20,23 +21,20 @@ const checkCards = (hands) => {
                 oneHand.push(card.card);
             });
             solvedHands.push(Hand.solve(oneHand));
-
         }
     });
 
-    winner = Hand.winners(solvedHands);
+    winners = Hand.winners(solvedHands);
 
-    console.log("winner");
-    console.log(winner);
-
-    solvedHands.forEach(hand => {
-        if (winner[0] && hand.cards === winner[0].cards) {
-            let winner_index = solvedHands.indexOf(hand);
-            winner = players[winner_index].getId() + "=" + winner[0].descr;
-        }
+    winners.forEach(winner => {
+        solvedHands.forEach(hand => {
+            if (hand.cards === winner.cards) {
+                let winner_index = solvedHands.indexOf(hand);
+                winner_info.push(players[winner_index].getId() + "=" + winner.descr);
+            }
+        });
     });
-
-    return winner;
+    return winner_info;
 };
 
 module.exports = { getRandomInt, checkCards }
