@@ -10,11 +10,9 @@ class Controller {
         this.betround = 0;
         this.turn = 0;
         this.firstActiveIndex = 0;
-        this.turnGiven = 0;
         this.totalBet = 0;
         this.currentBet = 0;
         this.activePlayers = 0;
-        this.blindsGiven = 0;
         this.roomData = [];
         this.tableData = [];
         this.statuses = ['Flop', 'Turn', 'River', 'Check'];
@@ -30,7 +28,6 @@ class Controller {
         this.totalBet = 0;
         this.currentBet = 100; // same than big blind
         this.activePlayers = 0;
-        this.blindsGiven = 0; // ? 
         let seatStatus = 0;
         this.deck.resetDeck();
 
