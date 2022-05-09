@@ -71,6 +71,10 @@ class Controller {
             this.roomData[elementIndex].getPlayer().setLastBet(lastBet);
             this.roomData[elementIndex].getPlayer().setRole(role);
             this.roomData[elementIndex].getPlayer().setHand(this.deck.dealCards(2));
+            console.log(this.roomData[elementIndex].status == 2 && this.turnGiven == 0)
+            console.log(elementIndex)
+            console.log("seatStatus: " + this.roomData[elementIndex].status)
+            console.log("turn:" )
             if (this.roomData[elementIndex].status == 2 && this.turnGiven == 0) {
                 this.turn = elementIndex;
                 this.firstActiveIndex = elementIndex;
@@ -78,11 +82,11 @@ class Controller {
             }
             element.status === 2 ? this.socket.to(element.player.getSocketId()).emit("playerHand", this.roomData[elementIndex].getPlayer().getHand()) : null;
         });
-        if (this.activePlayers < 3) {
             this.roomData[this.turn].setTurn(true);
-            this.socket.emit('updateTableCards', this.tableData);
+            this.socket.emit('resetTableCards', this.tableData);
             this.socket.emit('updatePlayer', this.roomData);
-        }
+        
+
         this.next('Start');
     };
 
