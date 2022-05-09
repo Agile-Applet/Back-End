@@ -20,14 +20,10 @@ const checkCards = (hands) => {
                 oneHand.push(card.card);
             });
             solvedHands.push(Hand.solve(oneHand));
-
         }
     });
 
     winner = Hand.winners(solvedHands);
-
-    console.log("winner");
-    console.log(winner);
 
     solvedHands.forEach(hand => {
         if (winner[0] && hand.cards === winner[0].cards) {

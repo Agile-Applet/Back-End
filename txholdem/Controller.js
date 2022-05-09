@@ -12,6 +12,7 @@ class Controller {
         this.firstActiveIndex = 0;
         this.turnGiven = 0;
         this.totalBet = 0;
+        this.currentBet = 0;
         this.activePlayers = 0;
         this.smallBlindTurn = -1;
         this.bigBlindTurn = 0;
@@ -29,10 +30,11 @@ class Controller {
         this.tableData = [];
         this.statuses = ['Flop', 'Turn', 'River', 'Check'];
         this.totalBet = 0;
+        this.currentBet = 100; // same than big blind
         this.activePlayers = 0;
         this.smallBlindTurn++;
         this.bigBlindTurn++;
-        this.blindsGiven = 0;
+        this.blindsGiven = 0; // ? 
         let role = '';
         let seatStatus = 0;
         let lastBet = 0;
@@ -85,71 +87,28 @@ class Controller {
     };
 
     /* Handle Betting */
-    checkBet(bet, index) {
-
-        if (index == 0) {
-            index++;
-        } else {
-            index--;
-        }
-        /* Check that current player bets enough */
-        if (bet == this.roomData[this.turn + 1].getPlayer().getLastBet()) {
-            this.setPlayerTurn(1);
-            this.betround++;
-            if (this.betround == this.activePlayers - 1) {
-                this.betround = 0;
-                this.status = this.statuses[0];
-                this.next(this.statuses[0]);
-            }
-            return true;
-        } else if (bet > this.roomData[this.turn].getPlayer().getLastBet()) {
-            this.setPlayerTurn(1);
-            this.betround = 0;
-            return true;
-        } else {
+    checkBet(bet, index) {    
+        if (bet <= 0) {
             return false;
-        }
+        } else{   
+            this.currentBet += bet;
+            this.betround = 1;
+            this.setPlayerTurn(1);
+            return true;
+        }   
     };
 
     /* Handle Checking */
-    validateCheck(playerCount) {
-        let lastBet = 0;
-        let currentBet = this.roomData[this.getPlayerTurn()].player.getLastBet();
-
-        if (this.getPlayerTurn() == 0) {
-            lastBet = this.roomData[playerCount - 1].player.lastBet;
-        } else {
-            lastBet = this.roomData[this.getPlayerTurn() - 1].player.getLastBet();
-        }
-
-        if (currentBet >= lastBet) {
-            this.setPlayerTurn(1);
-            this.betround++;
-            if (this.betround == this.activePlayers - 1) {
-                this.betround = 0;
-                this.status = this.statuses[0];
-                this.next(this.statuses[0]);
-            }
-            return true;
-        } else {
-            return false;
-        }
+    handleCheck() {
+        this.betround++;
+        this.setPlayerTurn(1);
     };
 
     /* Handle Folding */
-    validateFold(playerCount) {
-        let winnerIndex = 0;
-
-        if (playerCount < 3) {
-            winnerIndex += 1;
-            this.roomData[winnerIndex].money += this.totalBet;
-            this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[winnerIndex].getPlayer().getName() + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
-            this.socket.emit('updatePlayer', this.roomData);
-            this.status = 'Pause';
-            this.next('Pause');
-        } else {
-            this.setPlayerTurn(1);
-        }
+    handleFold(player) {
+        player.setStatus(1);
+        this.activePlayers--;
+        this.setPlayerTurn(1);
     };
 
     /* Return current player turn */
@@ -160,19 +119,38 @@ class Controller {
     /* Set current player turn
      - Updates the front regularly and ensures that the current turn is seen
   */
-    setPlayerTurn(data) {
+    setPlayerTurn(data) {        
         this.turn += data;
-        if (this.turn > this.activePlayers) {
-            this.turn = this.firstActiveIndex;
+
+        if (this.turn >= 6 ) { // start from 0 when out of bounds
+            this.turn = 0;
         }
-        this.roomData.forEach(element => {
-            if (this.turn == element.id) {
-                this.roomData[element.id].setTurn(true);
-            } else {
-                this.roomData[element.id].setTurn(false);
+
+        if( this.betround == this.activePlayers ){ // if all have pressed bet/check/call/fold
+            this.betround = 0;
+            this.status = this.statuses[0];
+            this.next(this.statuses[0]);
+        }
+
+        if(this.roomData[this.turn].getStatus() === 2){
+
+            if(this.activePlayers === 1){ // if all except one fold
+                this.socket.emit('userError', { action: "end_game", status: "success", message: this.roomData[this.turn].getPlayer().getName() + " voitti " + this.totalBet + " €! Uusi peli alkaa hetken kuluttua." });
+                this.status = 'Pause';
+                this.next('Pause');
+            } else{  
+                this.roomData.forEach(element => { 
+                    if (this.turn == element.id) {
+                        this.roomData[element.id].setTurn(true);
+                    } else {
+                        this.roomData[element.id].setTurn(false);
+                    }
+                    this.socket.emit('updatePlayer', this.roomData)
+                })
             }
-            this.socket.emit('updatePlayer', this.roomData)
-        })
+        } else{ // if seat empty or player waiting next game
+            this.setPlayerTurn(1);
+        }
     };
 
     /* Return current game status */
@@ -192,10 +170,11 @@ class Controller {
 
     /* Handle Flop Round */
     turnChange() {
-        this.totalBet = 50;
+        this.currentBet = 0;
         this.statuses.splice(0, 1);
         this.roomData.forEach(element => {
             this.totalBet += element.getPlayer().getLastBet();
+            element.getPlayer().setLastBet(0);
         });
         this.tableData[0] = { pot: this.totalBet, cards: this.tableData[0].cards, status: this.status };
         this.socket.emit('updateTableCards', this.tableData);
