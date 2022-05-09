@@ -87,15 +87,11 @@ class Controller {
     };
 
     /* Handle Betting */
-    checkBet(bet, index) {    
-        if (bet <= 0) {
-            return false;
-        } else{   
-            this.currentBet += bet;
+    handleBet(bet) {    
+            this.currentBet = bet;
             this.betround = 1;
             this.setPlayerTurn(1);
             return true;
-        }   
     };
 
     /* Handle Checking */
